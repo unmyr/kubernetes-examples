@@ -1,0 +1,223 @@
+== Example of REST
+
+=== Set up a new project
+
+[source,console]
+----
+$ cargo new --bin rust-hello
+     Created binary (application) `rust-hello` package
+----
+
+.References
+* https://mkaz.blog/working-with-rust/command-line-args/[Command-line args | mkaz.blog ^] +
+  rust command args optional arguments - Google 検索
+* https://github.com/actix/actix-web[actix/actix-web: Actix Web is a powerful, pragmatic, and extremely fast web framework for Rust.^] +
+  actix-web - Google 検索
+* https://github.com/serde-rs/json[serde-rs/json: Strongly typed JSON library for Rust^] +
+  rust json - Google Search
+* https://qiita.com/Yoshihiro-Hirose/items/2426fe5199cb1ff74bd7[Rust で actix-web を使って REST API を実装していく - Qiita^] +
+  rust rest api - Google 検索
+
+=== Run server
+
+[source,console]
+----
+$ cargo run
+    Finished dev [unoptimized + debuginfo] target(s) in 2m 38s
+     Running `target/debug/rust-hello`
+----
+
+[source,console]
+----
+$ curl http://localhost:8080/hello/John
+{"message":"Hello John!"}
+----
+
+=== Build docker
+
+. Build a docker image
++
+----
+$ docker image build --tag rust-hello:0.1 .
+...
+$ docker image ls | head -3
+REPOSITORY                TAG               IMAGE ID       CREATED          SIZE
+rust-hello                0.1               fa77f61f1284   3 minutes ago    14MB
+<none>                    <none>            cca1d865bb16   3 minutes ago    1.97GB
+----
+
+.References
+* https://hub.docker.com/r/ekidd/rust-musl-builder[ekidd/rust-musl-builder - Docker Image | Docker Hub^]
+* https://hub.docker.com/_/rust[rust - Official Image | Docker Hub^] +
+  rust alpine build docker image - Google Search
+* https://levelup.gitconnected.com/create-an-optimized-rust-alpine-docker-image-1940db638a6c[Create an Optimized Rust Alpine Docker Image | by Pascal Zwikirsch | Level Up Coding^] +
+  rust alpine build docker image - Google Search
+* https://zenn.dev/kyoheiu/articles/dcefe0c75f0e17[(1.59.0対応) Rustを軽量イメージ化するためのDockerfile^] +
+  rust alpine image - Google 検索
+
+=== Test docker image
+
+. Run docker
++
+[source,console]
+----
+$ docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' rust-hello
+172.17.0.2
+$ docker run --name rust-hello -p 8080:8080 --rm -d rust-hello:0.1 172.17.0.2
+----
++
+[source,shell]
+----
+docker container ls --filter name=rust-hello
+----
++
+[source,console]
+----
+$ docker ps --filter name=rust-hello
+----
+
+. Request to docker
++
+[source,console]
+----
+$ curl -s http://127.0.0.1:8080/hello/John | python3 -m json.tool
+{
+    "message": "Hello John!"
+}
+
+$ curl -s http://172.17.0.2:8080/hello/John | python3 -m json.tool
+{
+    "message": "Hello John!"
+}
+----
+
+. Stop docker
++
+[source,console]
+----
+$ docker stop rust-hello
+----
+
+=== Deploy
+
+. Push to KIND
++
+[source,console]
+----
+$ kind --name kind-1 load docker-image rust-hello:0.1
+Image: "rust-hello:0.1" with ID "sha256:fa77f61f1284617a4954fbda90c9ab9715d731e4ca0d94fd7555095b3627f790" not yet present on node "kind-1-control-plane", loading...
+----
++
+[source,console]
+----
+$ docker exec -it kind-1-control-plane crictl images
+IMAGE                                      TAG                  IMAGE ID            SIZE
+...
+docker.io/library/rust-hello               0.1                  fa77f61f12846       14.2MB
+...
+----
+
+. Deploy
++
+[source,console]
+----
+$ kubectl apply -f kind/rust-hello-app.pod.yaml
+pod/rust-hello-pod created
+service/rust-hello-service created
+$ kubectl get service rust-hello-service
+NAME                 TYPE           CLUSTER-IP    EXTERNAL-IP      PORT(S)          AGE
+rust-hello-service   LoadBalancer   10.96.173.3   172.18.254.240   3000:30930/TCP   33s
+$ kubectl logs rust-hello-pod
+server is listening on 10.244.0.7:8080 port
+----
+
+. Test
++
+[source,console]
+----
+$ curl -s http://172.18.254.240:3000/hello/John | python3 -m json.tool
+{
+    "message": "Hello John!"
+}
+$ curl -s http://$(kubectl get services rust-hello-service -o jsonpath='{.status.loadBalancer.ingress[*].ip}'):$(kubectl get services rust-hello-service -o jsonpath='{.spec.ports[0].port}')/hello/John --header "Content-Type: application/json" | python3 -m json.tool
+{
+    "message": "Hello John!"
+}
+----
+
+. Remove apps
++
+[source,console]
+----
+$ kubectl delete -f kind/rust-hello-app.pod.yaml
+pod "rust-hello-pod" deleted
+service "rust-hello-service" deleted
+----
+
+=== Troubleshooting
+
+==== currently active rustc version is 1.59.0
+
+[source,console]
+----
+$ docker image build --tag rust-hello:0.1 .
+Sending build context to Docker daemon  1.198GB
+Step 1/10 : FROM ekidd/rust-musl-builder:stable as builder
+stable: Pulling from ekidd/rust-musl-builder
+...
+  Downloaded actix-http v3.2.1
+error: package `rust-hello v0.1.0 (/home/rust)` cannot be built because it requires rustc 1.63 or newer, while the currently active rustc version is 1.59.0
+The command '/bin/sh -c cargo build --release --target x86_64-unknown-linux-musl' returned a non-zero code: 101
+----
+
+==== curl: (56) Recv failure: Connection reset by peer
+The first connection with the created Docker image failed.
+
+----
+$ curl -v http://127.0.0.1:8080/hello/John
+*   Trying 127.0.0.1:8080...
+* TCP_NODELAY set
+* Connected to 127.0.0.1 (127.0.0.1) port 8080 (#0)
+> GET /hello/John HTTP/1.1
+> Host: 127.0.0.1:8080
+> User-Agent: curl/7.68.0
+> Accept: */*
+>
+* Recv failure: Connection reset by peer
+* Closing connection 0
+curl: (56) Recv failure: Connection reset by peer
+----
+
+The problem was that the application listening loopback not `eth0`(172.17.0.2/16).
+
+[source,console]
+----
+$ docker exec -it rust-hello /bin/sh
+/opt/server # ls
+rust-hello
+/opt/server # ps
+PID   USER     TIME  COMMAND
+    1 root      0:00 ./rust-hello 127.0.0.1
+   16 root      0:00 /bin/sh
+   23 root      0:00 ps
+/opt/server # curl
+/bin/sh: curl: not found
+/opt/server # ls
+rust-hello
+/opt/server # ls ..
+server
+/opt/server # ip addr
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+2: tunl0@NONE: <NOARP> mtu 1480 qdisc noop state DOWN qlen 1000
+    link/ipip 0.0.0.0 brd 0.0.0.0
+3: sit0@NONE: <NOARP> mtu 1480 qdisc noop state DOWN qlen 1000
+    link/sit 0.0.0.0 brd 0.0.0.0
+15: eth0@if16: <BROADCAST,MULTICAST,UP,LOWER_UP,M-DOWN> mtu 1500 qdisc noqueue state UP
+    link/ether 02:42:ac:11:00:02 brd ff:ff:ff:ff:ff:ff
+    inet 172.17.0.2/16 brd 172.17.255.255 scope global eth0
+       valid_lft forever preferred_lft forever
+/opt/server #
+----

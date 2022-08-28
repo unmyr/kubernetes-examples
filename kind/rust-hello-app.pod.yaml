@@ -1,0 +1,34 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: rust-hello-pod
+  labels:
+    app: rust-hello-app
+spec:
+  containers:
+  - name: rust-hello-app
+    image: rust-hello:0.1
+    imagePullPolicy: Never
+    ports:
+    - containerPort: 8080
+    args:
+    - "$(MY_POD_IP)"
+    env:
+    - name: MY_POD_IP
+      valueFrom:
+        fieldRef:
+          fieldPath: status.podIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rust-hello-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: rust-hello-app
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 8080
+      protocol: TCP
