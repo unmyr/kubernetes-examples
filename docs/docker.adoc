@@ -268,7 +268,7 @@ $ docker stop goapp
 
 ==== Python apps
 
-[source,yaml]
+[source,dockerfile]
 .python-hello/Dockerfile
 ----
 FROM python:3.8-buster as builder
@@ -301,7 +301,7 @@ ENTRYPOINT ["python", "./server.py"]
 
 ==== Rust apps
 
-[source,yaml]
+[source,dockerfile]
 .rust-hello/Dockerfile
 ----
 FROM ekidd/rust-musl-builder:stable as builder
