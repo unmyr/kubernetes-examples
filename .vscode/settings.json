@@ -8,6 +8,7 @@
         "containerd",
         "coredns",
         "crictl",
+        "curlimages",
         "Iface",
         "ifndef",
         "importlib",
