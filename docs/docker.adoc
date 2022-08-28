@@ -119,11 +119,12 @@ kindest/node:v1.24.0   running   kind-control-plane
 
 === docker build
 
+==== Go apps
+
 * https://hub.docker.com/_/golang[golang - Official Image | Docker Hub^]
 * https://hub.docker.com/_/alpine[alpine - Official Image | Docker Hub^]
-* https://hub.docker.com/_/rust[rust - Official Image | Docker Hub^]
 
-==== Single stage
+===== Single stage
 
 . Create Dockerfile
 +
@@ -180,7 +181,7 @@ sample-image   0.1                 965c63eef20e   About a minute ago   377MB
 golang         1.14.1-alpine3.11   760fdda71c8f   2 years ago          370MB
 ----
 
-==== Multi stages
+===== Multi stages
 
 . Create Dockerfile
 +
@@ -264,6 +265,67 @@ CONTAINER ID   IMAGE              COMMAND      CREATED              STATUS      
 ----
 $ docker stop goapp
 ----
+
+==== Python apps
+
+[source,yaml]
+.python-hello/Dockerfile
+----
+FROM python:3.8-buster as builder
+
+WORKDIR /opt/app
+
+RUN mkdir /dist
+COPY requirements.txt /opt/app
+RUN python -m pip install -r /opt/app/requirements.txt --target /dist
+COPY ./src /dist
+
+FROM python:3.8-slim-buster as runner
+COPY --from=builder /dist .
+EXPOSE 8080
+ENTRYPOINT ["python", "./server.py"]
+----
+
+.References
+* https://hub.docker.com/_/python[python - Official Image | Docker Hub^] +
+  alpine python - Google 検索
+* https://www.docker.com/blog/containerized-python-development-part-1/[Containerized Python Development - Part 1 - Docker^] +
+  python docker offline install "as builder" - Google Search
+* https://blog.realkinetic.com/building-minimal-docker-containers-for-python-applications-37d0272c52f3[Building Minimal Docker Containers for Python Applications | by Nick Joyce | Real Kinetic Blog^] +
+  python docker offline install "as builder" - Google Search
+* https://future-architect.github.io/articles/20200513/[仕事でPythonコンテナをデプロイする人向けのDockerfile (1): オールマイティ編 | フューチャー技術ブログ^] +
+  python alpine - Google 検索
+* Apps
+** https://rapidapi.com/blog/best-python-api-frameworks/[Top 15 Best Python REST API Frameworks (2022) | RapidAPI^] +
+   python rest api server - Google Search
+
+==== Rust apps
+
+[source,yaml]
+.rust-hello/Dockerfile
+----
+FROM ekidd/rust-musl-builder:stable as builder
+
+WORKDIR /home/rust
+COPY src/* src/
+COPY Cargo.toml .
+RUN cargo build --release --target x86_64-unknown-linux-musl
+
+FROM alpine:latest
+WORKDIR /opt/server
+COPY --from=builder /home/rust/target/x86_64-unknown-linux-musl/release/rust-hello . 
+EXPOSE 8080
+ENTRYPOINT [ "./rust-hello" ]
+----
+
+.References
+* https://hub.docker.com/r/ekidd/rust-musl-builder[ekidd/rust-musl-builder - Docker Image | Docker Hub^]
+* https://hub.docker.com/_/rust[rust - Official Image | Docker Hub^] +
+  rust alpine build docker image - Google Search
+* https://levelup.gitconnected.com/create-an-optimized-rust-alpine-docker-image-1940db638a6c[Create an Optimized Rust Alpine Docker Image | by Pascal Zwikirsch | Level Up Coding^] +
+  rust alpine build docker image - Google Search
+* https://zenn.dev/kyoheiu/articles/dcefe0c75f0e17[(1.59.0対応) Rustを軽量イメージ化するためのDockerfile^] +
+  rust alpine image - Google 検索
 
 === docker run
 

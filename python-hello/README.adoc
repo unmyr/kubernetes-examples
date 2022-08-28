@@ -8,6 +8,8 @@
 $ docker image build --tag python38-hello:0.2 .
 ----
 
+=== Test docker image
+
 . Run docker
 +
 [source,console]
@@ -48,6 +50,8 @@ $ curl http://172.17.0.2:8080/hello
 $ docker stop python38-hello
 ----
 
+=== Deploy
+
 . Push to KIND
 +
 [source,console]
@@ -58,7 +62,7 @@ Image: "python38-hello:0.3" with ID "sha256:5dc24d7b2045d9d01678a8f7945491ed3f83
 +
 [source,console]
 ----
-$ docker exec -it kind-1-control-plane crictl
+$ docker exec -it kind-1-control-plane crictl images
 IMAGE                                      TAG                  IMAGE ID            SIZE
 ...
 docker.io/library/python38-hello           0.3                  5dc24d7b2045d       126MB

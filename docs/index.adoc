@@ -136,6 +136,12 @@ kubectl run -n default -it curl --image=curlimages/curl --rm --restart=Never -- 
 +
 * https://hub.docker.com/r/curlimages/curl[curlimages/curl - Docker Image | Docker Hub^]
 
+.References
+* https://kubernetes.io/docs/tasks/inject-data-application/_print/[Inject Data Into Applications | Kubernetes^] +
+  kubernetes args dynamic pod ip - Google Search
+* https://stackoverflow.com/questions/50248525/is-there-a-way-to-put-kubernetes-secret-value-in-args-field-of-yaml-file[Is there a way to put Kubernetes secret value in args field of yaml file - Stack Overflow^] +
+  kubernetes args valueFrom - Google 検索
+
 === ReplicaSets
 
 * ReplicaSetオブジェクトに関する情報を表示します:
@@ -331,17 +337,3 @@ default          go-hello-pod-metallb   LoadBalancer   10.96.17.114    172.18.25
 ----
 
 == References
-
-=== Python
-
-* https://hub.docker.com/_/python[python - Official Image | Docker Hub^] +
-  alpine python - Google 検索
-* https://www.docker.com/blog/containerized-python-development-part-1/[Containerized Python Development - Part 1 - Docker^] +
-  python docker offline install "as builder" - Google Search
-* https://blog.realkinetic.com/building-minimal-docker-containers-for-python-applications-37d0272c52f3[Building Minimal Docker Containers for Python Applications | by Nick Joyce | Real Kinetic Blog^] +
-  python docker offline install "as builder" - Google Search
-* https://future-architect.github.io/articles/20200513/[仕事でPythonコンテナをデプロイする人向けのDockerfile (1): オールマイティ編 | フューチャー技術ブログ^] +
-  python alpine - Google 検索
-* Apps
-** https://rapidapi.com/blog/best-python-api-frameworks/[Top 15 Best Python REST API Frameworks (2022) | RapidAPI^] +
-   python rest api server - Google Search
