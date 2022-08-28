@@ -1,0 +1,391 @@
+ifndef::leveloffset[]
+:toc: left
+:toclevels: 3
+:icons: font
+endif::[]
+
+include::header.adoc[]
+
+== Docker
+
+* Install Docker CE
+** <<docker_install_ubuntu-14.04.adoc#,Ubuntu 14.04 LTS>>
+** <<docker_install_ubuntu-18.04.adoc#,Ubuntu 18.04 LTS>>
+
+=== Install docker
+
+. Dockerのインストールに必要なパッケージをインストールする
++
+[source,shell]
+----
+sudo apt-get install apt-transport-https ca-certificates curl gnupg-agent software-properties-common
+----
+
+. DockerのGPG鍵を登録する
++
+[source,shell]
+----
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+----
+
+. DockerのPPAを登録する
++
+[source,shell]
+----
+sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+----
+
+. Dockerのインストール
++
+[source,shell]
+----
+sudo apt-get update
+sudo apt-get install docker-ce docker-ce-cli containerd.io
+----
+
+. sudoなしでdockerコマンドを使えるようにする
++
+[source,shell]
+----
+sudo usermod -aG docker $USER
+----
+
+. Start docker
++
+[source,shell]
+----
+sudo service docker start
+----
+
+.References
+* https://techceed-inc.com/engineer_blog/6671/[WSL2でDockerを動かしてみる -日販テクシード株式会社^] +
+  ubuntu20.04 docker.io wsl - Google 検索
+
+=== Show information
+
+==== Container
+
+* 表示可能なデータを確認する
++
+[source,console]
+----
+$ docker container ls --format "{{json .}}" | python3 -m json.tool
+----
++
+[source,json]
+----
+{
+    "Command": "\"/usr/local/bin/entr\u2026\"",
+    "CreatedAt": "2022-08-13 11:22:16 +0900 JST",
+    "ID": "f2c62d9df5ac",
+    "Image": "kindest/node:v1.24.0",
+    "Labels": "io.x-k8s.kind.cluster=kind,io.x-k8s.kind.role=control-plane",
+    "LocalVolumes": "1",
+    "Mounts": "/lib/modules,020cf60a568d15\u2026",
+    "Names": "kind-control-plane",
+    "Networks": "kind",
+    "Ports": "127.0.0.1:33863->6443/tcp",
+    "RunningFor": "10 hours ago",
+    "Size": "3.17MB (virtual 915MB)",
+    "State": "running",
+    "Status": "Up 48 minutes"
+}
+----
+
+* Show specific headers
++
+[source,console]
+----
+$ docker container ls --format "table {{.Image}}\t{{.State}}\t{{.Names}}"
+IMAGE                  STATE     NAMES
+kindest/node:v1.24.0   running   kind-control-plane
+----
+
+==== inspect
+
+* https://docs.docker.jp/engine/reference/commandline/inspect.html[docker inspect — Docker-docs-ja 20.10 ドキュメント^] +
+  docker inspect format - Google 検索
+
+
+=== Dockerfile
+
+* http://docs.docker.jp/engine/userguide/eng-image/dockerfile_best-practice.html[Dockerfile を書くベスト・プラクティス — Docker-docs-ja 1.13.RC ドキュメント]
+* https://www.qoosky.io/techs/f38c112ca9[Dockerfile ベストプラクティス (仮) - Qoosky]
+* http://blog.replicated.com/refactoring-a-dockerfile-for-image-size/[Refactoring a Dockerfile for Image Size - Replicated Blog]
+* http://qiita.com/tsuyoshi_cho/items/6a20a1566f6cdcc9c818[Dockerでdebianプラクティス - Qiita]
+* https://hackernoon.com/tips-to-reduce-docker-image-sizes-876095da3b34[Tips to Reduce Docker Image Sizes – Hacker Noon]
+** `DEBIAN_FRONTEND=noninteractive`
+** https://github.com/jupyter/docker-demo-images/blob/master/Dockerfile[docker-demo-images/Dockerfile at master · jupyter/docker-demo ...]
+
+=== docker build
+
+* https://hub.docker.com/_/golang[golang - Official Image | Docker Hub^]
+* https://hub.docker.com/_/alpine[alpine - Official Image | Docker Hub^]
+* https://hub.docker.com/_/rust[rust - Official Image | Docker Hub^]
+
+==== Single stage
+
+. Create Dockerfile
++
+[source,dockerfile]
+----
+FROM golang:1.19-alpine3.16
+
+COPY ./main.go ./
+RUN go build -o ./go-app ./main.go
+USER nobody
+
+ENTRYPOINT ["./go-app"]
+----
+
+. Build image
++
+[source,console]
+----
+$ docker image build -t sample-image:0.1 .
+Sending build context to Docker daemon  3.072kB
+Step 1/5 : FROM golang:1.14.1-alpine3.11
+1.14.1-alpine3.11: Pulling from library/golang
+aad63a933944: Pull complete
+c732a2540651: Pull complete
+7b2225181d6b: Pull complete
+c8dae7ec6990: Pull complete
+08684ee472f3: Pull complete
+Digest: sha256:244a736db4a1d2611d257e7403c729663ce2eb08d4628868f9d9ef2735496659
+Status: Downloaded newer image for golang:1.14.1-alpine3.11
+ ---> 760fdda71c8f
+Step 2/5 : COPY ./main.go ./
+ ---> f9fd89b2f92f
+Step 3/5 : RUN go build -o ./go-app ./main.go
+ ---> Running in 81be93372853
+Removing intermediate container 81be93372853
+ ---> 5eb9a35b8693
+Step 4/5 : USER nobody
+ ---> Running in 5becd6dcd878
+Removing intermediate container 5becd6dcd878
+ ---> 6153d8783f62
+Step 5/5 : ENTRYPOINT ["./go-app"]
+ ---> Running in 6491cc80ede4
+Removing intermediate container 6491cc80ede4
+ ---> 965c63eef20e
+Successfully built 965c63eef20e
+Successfully tagged sample-image:0.1
+----
++
+[source,console]
+----
+$ docker image ls
+REPOSITORY     TAG                 IMAGE ID       CREATED              SIZE
+sample-image   0.1                 965c63eef20e   About a minute ago   377MB
+golang         1.14.1-alpine3.11   760fdda71c8f   2 years ago          370MB
+----
+
+==== Multi stages
+
+. Create Dockerfile
++
+[source,dockerfile]
+.Dockerfile-MultiStage
+----
+FROM golang:1.19-alpine3.16 as builder
+COPY ./main.go ./
+RUN go build -o /go-app ./main.go
+
+FROM alpine:3.16
+EXPOSE 8080
+COPY --from=builder /go-app .
+ENTRYPOINT ["./go-app"]
+----
++
+NOTE: `golang` work directory is `/go`.
++
+.References
+** https://stackoverflow.com/questions/69409999/docker-file-does-not-exist-error-on-multi-stage-build-copy-command[dockerfile - Docker `file does not exist` Error on multi stage build COPY command - Stack Overflow^] +
+   docker multi stage build COPY failed: stat - Google 検索
+
+. Build image
++
+[source,console]
+----
+$ docker image build -t sample-image:0.2 -f Dockerfile-MultiStage .
+Sending build context to Docker daemon  3.072kB
+Step 1/7 : FROM golang:1.19-alpine3.16 as builder
+ ---> d0f5238dcb8b
+Step 2/7 : COPY ./main.go ./
+ ---> Using cache
+ ---> dfadd44aad7e
+Step 3/7 : RUN go build -o ./go-app ./main.go
+ ---> Using cache
+ ---> 01d2aa3044f0
+Step 4/7 : FROM alpine:3.16
+ ---> 9c6f07244728
+Step 5/7 : EXPOSE 8080
+ ---> Using cache
+ ---> 223bb9eb461b
+Step 6/7 : COPY --from=builder /go/go-app .
+ ---> 2413ba15707e
+Step 7/7 : ENTRYPOINT ["./go-app"]
+ ---> Running in f7929c39e5f6
+Removing intermediate container f7929c39e5f6
+ ---> ebb6145975a7
+Successfully built ebb6145975a7
+Successfully tagged sample-image:0.2
+----
+
+. Run app
++
+[source,console]
+----
+$ docker run --name goapp -p 8080:8080 sample-image:0.2
+----
+
+. From a different command line window, use curl to make a request to your running web service.
++
+[source,console]
+----
+$ curl http://localhost:8080/hello \
+--header "Content-Type: application/json" \
+--request "GET"
+{"message":"Hello, world!"}
+----
+
+. From a different command line window, use curl to make a request to your running web service.
++
+[source,console]
+----
+$ docker container ls
+CONTAINER ID   IMAGE              COMMAND      CREATED              STATUS              PORTS                                       NAMES
+72154c56b779   sample-image:0.2   "./go-app"   About a minute ago   Up About a minute   0.0.0.0:8080->8080/tcp, :::8080->8080/tcp   goapp
+----
+
+. Stop docker container
++
+[source,console]
+----
+$ docker stop goapp
+----
+
+=== docker run
+
+==== docker run --link
+
+* http://qiita.com/Arturias/items/75828479c1f9eb8d43fa[Docker の基本学習 ~ コンテナ間のリンク - Qiita^]
+* http://qiita.com/taka4sato/items/b1bf33941a1ec8b69fd2[Docker container間の連携について - Qiita^]
+* http://deeeet.com/writing/2014/03/20/docker-link-container/[Dockerコンテナ間のlink，database.ymlの書き方 | SOTA]
+
+==== docker exec
+
+* http://qiita.com/yosisa/items/a5670e4da3ff22e9411a[コンテナに入りたい？それ docker exec でできるよ - Qiita]
+  例えば influxdb という名前のコンテナに入るには次のようにします。
++
+[source,shell]
+----
+docker exec -it influxdb bash
+----
+
+=== Docker Registry
+
+. Search the Docker Hub for images
++
+[source,shell]
+----
+docker search registry
+----
+
+. Execute the standard command to pull down the registry image.
++
+[source,shell]
+----
+docker pull registry
+----
+
+. Launch the registry via the following command:
++
+[source,shell]
+----
+docker run -d -p 5000:5000 --name localregistry registry
+----
+On successful launch, it will print the Container ID on the console.
+
+. Check if the our container named `localregistry`
++
+[source,shell]
+----
+docker ps
+----
+
+. Push your image into the local Registry is done as follows:
++
+[source,shell]
+----
+docker tag sample-image:0.2 localhost:5000/sample-image:0.2
+----
+
+. Push the tagged image or container into the local registry.
++
+[source,shell]
+----
+docker push localhost:5000/sample-image:0.2
+docker rmi sample-image:0.2
+----
+
+.References
+* https://rominirani.com/docker-tutorial-series-part-6-docker-private-registry-15d1fd899255[Docker Tutorial Series : Part 6 : Docker Private Registry | by Romin Irani | Romin Irani’s Blog^]
+
+=== network
+
+* List docker networks
++
+[source,console]
+----
+$ docker network ls
+NETWORK ID     NAME      DRIVER    SCOPE
+e4d225111963   bridge    bridge    local
+07906dfdeb1b   host      host      local
+cb34625844b6   kind      bridge    local
+49fa216f1f3a   none      null      local
+----
+
+** Filter by name
++
+[source,console]
+----
+$ docker network ls -f name=kind
+NETWORK ID     NAME      DRIVER    SCOPE
+cb34625844b6   kind      bridge    local
+----
+
+* Show bridge
++
+[source,shell]
+----
+docker network inspect bridge
+----
+
+== Reference
+
+.Jupyter Notebook
+* minimal-notebook
+** https://github.com/jupyter/docker-stacks/tree/master/minimal-notebook[docker-stacks/minimal-notebook at master · jupyter/docker-stacks]
+* base-notebook
+** https://github.com/jupyter/docker-stacks/tree/master/base-notebook[docker-stacks/base-notebook at master · jupyter/docker-stacks · GitHub]
+** https://hub.docker.com/r/hmlatapie/base-notebook/[hmlatapie/base-notebook]
+* datascience-notebook
+** https://hub.docker.com/r/jupyter/datascience-notebook/[jupyter/datascience-notebook]
+* https://qiita.com/izumin5210/items/90adb4fd1f59d1aeaaa7[Jupyter Notebook on DockerでVim keybindsを利用する - Qiita] +
+  docker として使うためのマウントなどの設定箇所について書いてある
+* https://github.com/jupyter/notebook/issues/2287[iopub rate limits are too low by default, for visualization-heavy projects #2287]
+* http://qiita.com/tukiyo3/items/7eb46892d11833077952[メモ: Jupyter使ってみた - Qiita]
+* http://qiita.com/kshigeru/items/ea174d6bcacc474f2a51[JupyterのDockerイメージまとめ - Qiita]
+* http://qiita.com/inu1one/items/075c372059370f6af909[Dockerで作るJupyter Notebook開発環境 - Qiita]
+
+.Conda
+* https://conda.io/docs/user-guide/tasks/manage-environments.html[Conda Environment]
+* https://hub.docker.com/r/hmlatapie/base-notebook/[hmlatapie/base-notebook - Docker Hub]
+* Dockerfile
+** https://hub.docker.com/r/lsxliron/full-notebook/~/dockerfile/[lsxliron/full-notebook] +
+   `RUN conda install --quiet --yes` +
+   `conda install --quiet --yes -n python2 --file /home/jovyan/conda-reqs.txt`
+
+.misc
+* https://gomiba.co.in/blog/archives/831[Atom と Hydrogen で Jupyter が Atom で動くよ！（インストール、準備、使い方まで）]

@@ -1,0 +1,3 @@
+<<index.adoc#,Index>> {vbar}
+<<docker.adoc#,Docker>> {vbar}
+<<k8s_kind.adoc#,Kind>> +

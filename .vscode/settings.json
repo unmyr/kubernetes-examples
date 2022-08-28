@@ -1,5 +1,29 @@
 {
     "cSpell.words": [
-        "metallb"
+        "adoc",
+        "apiserver",
+        "arping",
+        "AUTHINFO",
+        "conda",
+        "containerd",
+        "coredns",
+        "Iface",
+        "ifndef",
+        "jsonpath",
+        "kindnet",
+        "kube",
+        "kubectl",
+        "Kubernetes",
+        "leveloffset",
+        "linkdown",
+        "metallb",
+        "noninteractive",
+        "proto",
+        "Qiita",
+        "replicasets",
+        "toclevels",
+        "usermod",
+        "Waddress",
+        "Wtype"
     ]
 }
