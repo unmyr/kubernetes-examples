@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: python38-hello-pod
+  labels:
+    app: python38-hello-app
+spec:
+  containers:
+  - name: python38-hello-app
+    image: python38-hello:0.3
+    imagePullPolicy: Never
+    ports:
+    - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: python38-hello-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: python38-hello-app
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 8080
+      protocol: TCP

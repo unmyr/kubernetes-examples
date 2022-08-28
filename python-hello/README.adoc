@@ -1,0 +1,205 @@
+== Example of Flask
+
+=== Build docker
+
+. Build docker.
++
+----
+$ docker image build --tag python38-hello:0.2 .
+----
+
+. Run docker
++
+[source,console]
+----
+$ docker run --name python38-hello -p 8080:8080 --rm -d python38-hello:0.2
+----
++
+[source,shell]
+----
+docker container ls --filter name=python38-hello
+----
++
+[source,console]
+----
+$ docker ps --filter name=python38-hello
+----
+
+. Request to docker
++
+[source,console]
+----
+$ curl http://127.0.0.1:8080/hello
+{
+  "message": "Hello, world!"
+}
+$ docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' python38-hello
+172.17.0.2
+$ curl http://172.17.0.2:8080/hello
+{
+  "message": "Hello, world!"
+}
+----
+
+. Stop docker
++
+[source,console]
+----
+$ docker stop python38-hello
+----
+
+. Push to KIND
++
+[source,console]
+----
+$ kind --name kind-1 load docker-image python38-hello:0.3
+Image: "python38-hello:0.3" with ID "sha256:5dc24d7b2045d9d01678a8f7945491ed3f83ddd461736a6371b8f52f42004b67" not yet present on node "kind-1-control-plane", loading...
+----
++
+[source,console]
+----
+$ docker exec -it kind-1-control-plane crictl
+IMAGE                                      TAG                  IMAGE ID            SIZE
+...
+docker.io/library/python38-hello           0.3                  5dc24d7b2045d       126MB
+...
+----
+
+. Deploy
++
+[source,console]
+----
+$ kubectl apply -f kind/python-hello-app.pod.yaml
+pod/python38-hello-pod created
+service/python38-hello-service created
+$ kubectl get service python38-hello-service
+NAME                     TYPE           CLUSTER-IP     EXTERNAL-IP      PORT(S)          AGE
+python38-hello-service   LoadBalancer   10.96.13.173   172.18.254.240   3000:30834/TCP   74s
+$ kubectl logs python38-hello-pod
+ * Serving Flask app 'server'
+ * Debug mode: on
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://10.244.0.15:8080
+Press CTRL+C to quit
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 222-460-451
+----
+
+. Test
++
+[source,console]
+----
+$ curl -s http://172.18.254.240:3000/hello
+{
+  "message": "Hello, world!"
+}
+$ curl -s http://$(kubectl get services python38-hello-service -o jsonpath='{.status.loadBalancer.ingress[*].ip}'):$(kubectl get services python38-hello-service -o jsonpath='{.spec.ports[0].port}')/hello --header "Content-Type: application/json" | python3 -m json.tool
+{
+    "message": "Hello, world!"
+}
+----
+
+. Remove apps
++
+[source,console]
+----
+$ kubectl delete -f kind/python-hello-app.pod.yaml
+pod "python38-hello-pod" deleted
+service "python38-hello-service" deleted
+----
+
+=== Troubleshooting
+
+==== Failed to connect to 127.0.0.1 port 8080: Connection refused
+
+The solution: listen on all interfaces.
+
+[source,diff]
+.python-hello/src/server.py
+----
+@@ -12,4 +12,4 @@ def hello():
+
+
+ if __name__ == "__main__":
+-    app.run(debug=True, port=8080)
++    app.run(debug=True, host="0.0.0.0", port=8080)
+----
+
+----
+$ docker run --name python38-hello -p 8080:8080 --rm -d python38-hello:0.1
+...
+$ curl http://127.0.0.1:8080/hello
+curl: (7) Failed to connect to 127.0.0.1 port 8080: Connection refused
+----
+
+listen only localhost:8080.
+
+----
+$ docker exec -it python38-hello /bin/bash
+root@53cb8c0d4173:/# apt update
+...
+# apt install -y lsof curl net-tools iproute2
+root@53cb8c0d4173:/# lsof -i -P | grep localhost
+python    1 root    3u  IPv4 1275830      0t0  TCP localhost:8080 (LISTEN)
+python    1 root    5u  IPv4 1275830      0t0  TCP localhost:8080 (LISTEN)
+python    8 root    3u  IPv4 1275830      0t0  TCP localhost:8080 (LISTEN)
+python    8 root    5u  IPv4 1275830      0t0  TCP localhost:8080 (LISTEN)
+root@53cb8c0d4173:/# lsof -i -P | grep 172.17.0.2
+root@53cb8c0d4173:/#
+----
+
+* 修正後
++
+[source,console]
+----
+# apt update
+...
+# apt install -y lsof iproute2
+# ip address show
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+2: tunl0@NONE: <NOARP> mtu 1480 qdisc noop state DOWN group default qlen 1000
+    link/ipip 0.0.0.0 brd 0.0.0.0
+3: sit0@NONE: <NOARP> mtu 1480 qdisc noop state DOWN group default qlen 1000
+    link/sit 0.0.0.0 brd 0.0.0.0
+35: eth0@if36: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default
+    link/ether 02:42:ac:11:00:02 brd ff:ff:ff:ff:ff:ff link-netnsid 0
+    inet 172.17.0.2/16 brd 172.17.255.255 scope global eth0
+       valid_lft forever preferred_lft forever
+root@70aff0476f6b:/# lsof -i -P | grep python
+python    1 root    3u  IPv4 1311491      0t0  TCP *:8080 (LISTEN)
+python    1 root    5u  IPv4 1311491      0t0  TCP *:8080 (LISTEN)
+python    8 root    3u  IPv4 1311491      0t0  TCP *:8080 (LISTEN)
+python    8 root    5u  IPv4 1311491      0t0  TCP *:8080 (LISTEN)
+----
+
+==== kind: Failed to connect
+
+[source,console]
+----
+$ curl -v http://172.18.254.240:3000/hello
+*   Trying 172.18.254.240:3000...
+* TCP_NODELAY set
+* connect to 172.18.254.240 port 3000 failed: No route to host
+* Failed to connect to 172.18.254.240 port 3000: No route to host
+* Closing connection 0
+curl: (7) Failed to connect to 172.18.254.240 port 3000: No route to host
+$ kubectl get services python38-hello-service
+NAME                     TYPE           CLUSTER-IP     EXTERNAL-IP      PORT(S)          AGE
+python38-hello-service   LoadBalancer   10.96.172.59   172.18.254.240   3000:30401/TCP   4m56s
+$ kubectl get pods -l app=python38-hello-app -o custom-column
+s="Pod IP":.status.podIP,"Container port":.spec.containers[0].ports[].containerPort
+Pod IP        Container port
+10.244.0.15   8080
+----
+
+----
+$ kubectl get endpoints python38-hello-service
+NAME                     ENDPOINTS   AGE
+python38-hello-service   <none>      6m31s
+----
