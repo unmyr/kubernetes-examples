@@ -320,3 +320,20 @@ Timeout
 $ kubectl get services --all-namespaces | grep 172.18.254
 default          go-hello-pod-metallb   LoadBalancer   10.96.17.114    172.18.254.240   8080:30161/TCP           22m
 ----
+
+
+== References
+
+=== Python
+
+* https://hub.docker.com/_/python[python - Official Image | Docker Hub^] +
+  alpine python - Google 検索
+* https://www.docker.com/blog/containerized-python-development-part-1/[Containerized Python Development - Part 1 - Docker^] +
+  python docker offline install "as builder" - Google Search
+* https://blog.realkinetic.com/building-minimal-docker-containers-for-python-applications-37d0272c52f3[Building Minimal Docker Containers for Python Applications | by Nick Joyce | Real Kinetic Blog^] +
+  python docker offline install "as builder" - Google Search
+* https://future-architect.github.io/articles/20200513/[仕事でPythonコンテナをデプロイする人向けのDockerfile (1): オールマイティ編 | フューチャー技術ブログ^] +
+  python alpine - Google 検索
+* Apps
+** https://rapidapi.com/blog/best-python-api-frameworks/[Top 15 Best Python REST API Frameworks (2022) | RapidAPI^] +
+   python rest api server - Google Search
