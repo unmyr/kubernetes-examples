@@ -1,0 +1,21 @@
+version: "3.7"
+
+networks:
+  greet-net:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.19.0.0/24
+
+services:
+  app:
+    build: .
+    image: greet-rust:0.1
+    container_name: greet-rust
+    command: ./greet-rust 172.19.0.100
+    ports:
+      - 8080:8080
+    networks:
+      greet-net:
+        ipv4_address: 172.19.0.100
