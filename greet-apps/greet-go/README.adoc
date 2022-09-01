@@ -1,0 +1,155 @@
+== Example of greet apps
+
+=== Build docker
+
+. Build docker.
++
+----
+$ docker image build --tag greet-go:0.1 .
+----
+
+=== Test docker image
+
+. Run docker
++
+[source,console]
+----
+$ docker run --name greet-go -p 8080:8080 --rm -d greet-go:0.1
+----
++
+[source,shell]
+----
+docker container ls --filter name=greet-go
+----
++
+[source,console]
+----
+$ docker ps --filter name=greet-go
+----
+
+. Request to docker
++
+[source,console]
+----
+$ curl -s http://127.0.0.1:8080/hello/John | python3 -m json.tool
+{
+    "message": "Hello, John!"
+}
+$ docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' greet-go
+172.17.0.2
+$ curl http://172.17.0.2:8080/hello/John | python3 -m json.tool
+{
+  "message": "Hello, John!"
+}
+----
+
+. Stop docker
++
+[source,console]
+----
+$ docker stop greet-go
+----
+
+=== Deploy
+
+. Push to KIND
++
+[source,console]
+----
+$ kind --name kind-1 load docker-image greet-go:0.1
+Image: "greet-go:0.1" with ID "sha256:be53d4010fe79ce713c4b27d98b554f230c75f78efdb0a3c977732b21e93b1ca" not yet present on node "kind-1-control-plane", loading...
+----
++
+[source,console]
+----
+$ docker exec -it kind-1-control-plane crictl images
+IMAGE                                      TAG                  IMAGE ID            SIZE
+...
+docker.io/library/greet-go                 0.1                  be53d4010fe79       12.5MB
+...
+----
+
+==== Using pod
+
+. Deploy
++
+[source,console]
+----
+$ kubectl apply -f kind/greet-go.pod.yaml
+pod/greet-go-pod created
+service/greet-go-service created
+$ kubectl get service greet-go-service
+NAME               TYPE           CLUSTER-IP      EXTERNAL-IP      PORT(S)          AGE
+greet-go-service   LoadBalancer   10.96.180.141   172.18.254.240   3000:31907/TCP   20s
+$ kubectl get pods greet-go-pod
+NAME           READY   STATUS    RESTARTS   AGE
+greet-go-pod   1/1     Running   0          71s
+$ kubectl logs greet-go-pod
+----
+
+. Test
++
+[source,console]
+----
+$ curl -s http://172.18.254.240:3000/hello/John | python3 -m json.tool
+{
+  "message": "Hello, John!"
+}
+$ curl -s http://$(kubectl get services greet-go-service -o jsonpath='{.status.loadBalancer.ingress[*].ip}'):$(kubectl get services greet-go-service -o jsonpath='{.spec.ports[0].port}')/hello/John --header "Content-Type: application/json" | python3 -m json.tool
+{
+    "message": "Hello, John!"
+}
+----
+
+. Remove apps
++
+[source,console]
+----
+$ kubectl delete -f kind/greet-go.pod.yaml
+pod "greet-go-pod" deleted
+service "greet-go-service" deleted
+----
+
+==== Using deployment
+
+. Deploy
++
+[source,console]
+----
+$ kubectl apply -f kind/greet-go.deployment.yaml
+deployment.apps/greet-go-app created
+service/greet-go-service created
+$ kubectl get deployments
+NAME           READY   UP-TO-DATE   AVAILABLE   AGE
+greet-go-app   2/2     2            2           3m29s
+$ kubectl get pods
+NAME                            READY   STATUS    RESTARTS   AGE
+greet-go-app-6d96948599-9kww7   1/1     Running   0          12s
+greet-go-app-6d96948599-sdkn6   1/1     Running   0          12s
+$ kubectl get service greet-go-service
+NAME               TYPE           CLUSTER-IP    EXTERNAL-IP      PORT(S)          AGE
+greet-go-service   LoadBalancer   10.96.0.176   172.18.254.240   3000:30153/TCP   112
+----
+
+. Test
++
+[source,console]
+----
+$ curl -s http://172.18.254.240:3000/hello/John | python3 -m json.tool
+{
+  "message": "Hello, John!"
+}
+$ curl -s http://$(kubectl get services greet-go-service -o jsonpath='{.status.loadBalancer.ingress[*].ip}'):$(kubectl get services greet-go-service -o jsonpath='{.spec.ports[0].port}')/hello/John --header "Content-Type: application/json" | python3 -m json.tool
+{
+    "message": "Hello, John!"
+}
+----
+
+. Remove apps
++
+[source,console]
+----
+$ kubectl delete -f kind/greet-go.deployment.yaml
+deployment.apps "greet-go-app" deleted
+service "greet-go-service" deleted
+----

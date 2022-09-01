@@ -1,32 +1,25 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: rust-hello-pod
+  name: greet-python-pod
   labels:
-    app: rust-hello-app
+    app: greet-python-app
 spec:
   containers:
-  - name: rust-hello-app
-    image: rust-hello:0.1
+  - name: greet-python-app
+    image: greet-python:0.1
     imagePullPolicy: Never
     ports:
     - containerPort: 8080
-    args:
-    - "$(MY_POD_IP)"
-    env:
-    - name: MY_POD_IP
-      valueFrom:
-        fieldRef:
-          fieldPath: status.podIP
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: rust-hello-service
+  name: greet-python-service
 spec:
   type: LoadBalancer
   selector:
-    app: rust-hello-app
+    app: greet-python-app
   ports:
     - name: http
       port: 3000

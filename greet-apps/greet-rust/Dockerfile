@@ -7,6 +7,6 @@ RUN cargo build --release --target x86_64-unknown-linux-musl
 
 FROM alpine:latest
 WORKDIR /opt/server
-COPY --from=builder /home/rust/target/x86_64-unknown-linux-musl/release/rust-hello . 
+COPY --from=builder /home/rust/target/x86_64-unknown-linux-musl/release/greet-rust . 
 EXPOSE 8080
-ENTRYPOINT [ "./rust-hello" ]
+ENTRYPOINT [ "./greet-rust" ]

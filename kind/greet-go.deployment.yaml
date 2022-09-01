@@ -1,20 +1,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: go-hello-app
+  name: greet-go-app
 spec:
   selector:
     matchLabels:
-      app: go-hello-app
+      app: greet-go-app
   replicas: 2
   template:
     metadata:
       labels:
-        app: go-hello-app
+        app: greet-go-app
     spec:
       containers:
-      - name: go-hello-app
-        image: go-hello-app:0.2
+      - name: greet-go
+        image: greet-go:0.1
         imagePullPolicy: Never
         ports:
         - containerPort: 8080
@@ -22,11 +22,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: go-hello-service
+  name: greet-go-service
 spec:
   type: LoadBalancer
   selector:
-    app: go-hello-app
+    app: greet-go-app
   ports:
     - name: http
       port: 3000

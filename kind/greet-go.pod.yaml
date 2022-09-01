@@ -1,13 +1,13 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: python38-hello-pod
+  name: greet-go-pod
   labels:
-    app: python38-hello-app
+    app: greet-go-app
 spec:
   containers:
-  - name: python38-hello-app
-    image: python38-hello:0.3
+  - name: greet-go
+    image: greet-go:0.1
     imagePullPolicy: Never
     ports:
     - containerPort: 8080
@@ -15,11 +15,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: python38-hello-service
+  name: greet-go-service
 spec:
   type: LoadBalancer
   selector:
-    app: python38-hello-app
+    app: greet-go-app
   ports:
     - name: http
       port: 3000

@@ -1,25 +1,32 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: go-hello-pod
+  name: greet-rust-pod
   labels:
-    app: go-hello-app
+    app: greet-rust-app
 spec:
   containers:
-  - name: go-hello-app
-    image: go-hello-app:0.2
+  - name: greet-rust-app
+    image: greet-rust:0.1
     imagePullPolicy: Never
     ports:
     - containerPort: 8080
+    args:
+    - "$(MY_POD_IP)"
+    env:
+    - name: MY_POD_IP
+      valueFrom:
+        fieldRef:
+          fieldPath: status.podIP
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: go-hello-service
+  name: greet-rust-service
 spec:
   type: LoadBalancer
   selector:
-    app: go-hello-pod
+    app: greet-rust-app
   ports:
     - name: http
       port: 3000

@@ -4,8 +4,8 @@
 
 [source,console]
 ----
-$ cargo new --bin rust-hello
-     Created binary (application) `rust-hello` package
+$ cargo new --bin greet-rust
+     Created binary (application) `greet-rust` package
 ----
 
 .References
@@ -24,7 +24,7 @@ $ cargo new --bin rust-hello
 ----
 $ cargo run
     Finished dev [unoptimized + debuginfo] target(s) in 2m 38s
-     Running `target/debug/rust-hello`
+     Running `target/debug/greet-rust`
 ----
 
 [source,console]
@@ -38,12 +38,12 @@ $ curl http://localhost:8080/hello/John
 . Build a docker image
 +
 ----
-$ docker image build --tag rust-hello:0.1 .
+$ docker image build --tag greet-rust:0.1 .
 ...
 $ docker image ls | head -3
 REPOSITORY                TAG               IMAGE ID       CREATED          SIZE
-rust-hello                0.1               fa77f61f1284   3 minutes ago    14MB
-<none>                    <none>            cca1d865bb16   3 minutes ago    1.97GB
+greet-rust                0.1               4747b036d01c   38 seconds ago   14MB
+<none>                    <none>            5448a38c7f11   3 minutes ago    1.89GB
 ----
 
 .References
@@ -61,19 +61,32 @@ rust-hello                0.1               fa77f61f1284   3 minutes ago    14MB
 +
 [source,console]
 ----
-$ docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' rust-hello
-172.17.0.2
-$ docker run --name rust-hello -p 8080:8080 --rm -d rust-hello:0.1 172.17.0.2
-----
-+
-[source,shell]
-----
-docker container ls --filter name=rust-hello
+$ docker network create --subnet=172.19.0.0/24 greet-net
+
+$ docker network ls
+NETWORK ID     NAME        DRIVER    SCOPE
+e4de57d51ab0   bridge      bridge    local
+f17d96919d86   greet-net   bridge    local
+07906dfdeb1b   host        host      local
+cb34625844b6   kind        bridge    local
+49fa216f1f3a   none        null      local
+$ docker network inspect greet-net --format '{{json .IPAM.Config}}' | python3 -m json.tool
+[
+    {
+        "Subnet": "172.19.0.0/24"
+    }
+]
+$ docker run --name greet-rust -p 8080:8080 --rm -d --net=greet-net --ip=172.19.0.100 greet-rust:0.1 172.19.0.100
 ----
 +
 [source,console]
 ----
-$ docker ps --filter name=rust-hello
+$ docker container ls --filter name=greet-rust
+----
++
+[source,console]
+----
+$ docker ps --filter name=greet-rust
 ----
 
 . Request to docker
@@ -85,7 +98,10 @@ $ curl -s http://127.0.0.1:8080/hello/John | python3 -m json.tool
     "message": "Hello John!"
 }
 
-$ curl -s http://172.17.0.2:8080/hello/John | python3 -m json.tool
+$ docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' greet-rust
+172.19.0.100
+
+$ curl -s http://172.19.0.100:8080/hello/John | python3 -m json.tool
 {
     "message": "Hello John!"
 }
@@ -95,7 +111,8 @@ $ curl -s http://172.17.0.2:8080/hello/John | python3 -m json.tool
 +
 [source,console]
 ----
-$ docker stop rust-hello
+$ docker stop greet-rust
+$ docker network rm greet-net
 ----
 
 === Deploy
@@ -104,8 +121,8 @@ $ docker stop rust-hello
 +
 [source,console]
 ----
-$ kind --name kind-1 load docker-image rust-hello:0.1
-Image: "rust-hello:0.1" with ID "sha256:fa77f61f1284617a4954fbda90c9ab9715d731e4ca0d94fd7555095b3627f790" not yet present on node "kind-1-control-plane", loading...
+$ kind --name kind-1 load docker-image greet-rust:0.1
+Image: "greet-rust:0.1" with ID "sha256:4747b036d01caf7eac0bc110de70fac0fd1d8c18fffc1ca081e1416a4fe7c890" not yet present on node "kind-1-control-plane", loading...
 ----
 +
 [source,console]
@@ -113,7 +130,7 @@ Image: "rust-hello:0.1" with ID "sha256:fa77f61f1284617a4954fbda90c9ab9715d731e4
 $ docker exec -it kind-1-control-plane crictl images
 IMAGE                                      TAG                  IMAGE ID            SIZE
 ...
-docker.io/library/rust-hello               0.1                  fa77f61f12846       14.2MB
+docker.io/library/greet-rust               0.1                  4747b036d01ca       14.2MB
 ...
 ----
 
@@ -121,13 +138,13 @@ docker.io/library/rust-hello               0.1                  fa77f61f12846   
 +
 [source,console]
 ----
-$ kubectl apply -f kind/rust-hello-app.pod.yaml
-pod/rust-hello-pod created
-service/rust-hello-service created
-$ kubectl get service rust-hello-service
-NAME                 TYPE           CLUSTER-IP    EXTERNAL-IP      PORT(S)          AGE
-rust-hello-service   LoadBalancer   10.96.173.3   172.18.254.240   3000:30930/TCP   33s
-$ kubectl logs rust-hello-pod
+$ kubectl apply -f kind/greet-rust.pod.yaml
+pod/greet-rust-pod created
+service/greet-rust-service created
+$ kubectl get service greet-rust-service
+NAME                 TYPE           CLUSTER-IP     EXTERNAL-IP      PORT(S)          AGE
+greet-rust-service   LoadBalancer   10.96.19.233   172.18.254.240   3000:30763/TCP   28s
+$ kubectl logs greet-rust-pod
 server is listening on 10.244.0.7:8080 port
 ----
 
@@ -139,7 +156,7 @@ $ curl -s http://172.18.254.240:3000/hello/John | python3 -m json.tool
 {
     "message": "Hello John!"
 }
-$ curl -s http://$(kubectl get services rust-hello-service -o jsonpath='{.status.loadBalancer.ingress[*].ip}'):$(kubectl get services rust-hello-service -o jsonpath='{.spec.ports[0].port}')/hello/John --header "Content-Type: application/json" | python3 -m json.tool
+$ curl -s http://$(kubectl get services greet-rust-service -o jsonpath='{.status.loadBalancer.ingress[*].ip}'):$(kubectl get services greet-rust-service -o jsonpath='{.spec.ports[0].port}')/hello/John --header "Content-Type: application/json" | python3 -m json.tool
 {
     "message": "Hello John!"
 }
@@ -149,9 +166,9 @@ $ curl -s http://$(kubectl get services rust-hello-service -o jsonpath='{.status
 +
 [source,console]
 ----
-$ kubectl delete -f kind/rust-hello-app.pod.yaml
-pod "rust-hello-pod" deleted
-service "rust-hello-service" deleted
+$ kubectl delete -f kind/greet-rust.pod.yaml
+pod "greet-rust-pod" deleted
+service "greet-rust-service" deleted
 ----
 
 === Troubleshooting
@@ -160,13 +177,13 @@ service "rust-hello-service" deleted
 
 [source,console]
 ----
-$ docker image build --tag rust-hello:0.1 .
+$ docker image build --tag greet-rust:0.1 .
 Sending build context to Docker daemon  1.198GB
 Step 1/10 : FROM ekidd/rust-musl-builder:stable as builder
 stable: Pulling from ekidd/rust-musl-builder
 ...
   Downloaded actix-http v3.2.1
-error: package `rust-hello v0.1.0 (/home/rust)` cannot be built because it requires rustc 1.63 or newer, while the currently active rustc version is 1.59.0
+error: package `greet-rust v0.1.0 (/home/rust)` cannot be built because it requires rustc 1.63 or newer, while the currently active rustc version is 1.59.0
 The command '/bin/sh -c cargo build --release --target x86_64-unknown-linux-musl' returned a non-zero code: 101
 ----
 
@@ -192,18 +209,18 @@ The problem was that the application listening loopback not `eth0`(172.17.0.2/16
 
 [source,console]
 ----
-$ docker exec -it rust-hello /bin/sh
+$ docker exec -it greet-rust /bin/sh
 /opt/server # ls
-rust-hello
+greet-rust
 /opt/server # ps
 PID   USER     TIME  COMMAND
-    1 root      0:00 ./rust-hello 127.0.0.1
+    1 root      0:00 ./greet-rust 127.0.0.1
    16 root      0:00 /bin/sh
    23 root      0:00 ps
 /opt/server # curl
 /bin/sh: curl: not found
 /opt/server # ls
-rust-hello
+greet-rust
 /opt/server # ls ..
 server
 /opt/server # ip addr

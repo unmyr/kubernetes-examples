@@ -302,7 +302,7 @@ ENTRYPOINT ["python", "./server.py"]
 ==== Rust apps
 
 [source,dockerfile]
-.rust-hello/Dockerfile
+.greet-apps/greet-rust/Dockerfile
 ----
 FROM ekidd/rust-musl-builder:stable as builder
 
@@ -313,9 +313,9 @@ RUN cargo build --release --target x86_64-unknown-linux-musl
 
 FROM alpine:latest
 WORKDIR /opt/server
-COPY --from=builder /home/rust/target/x86_64-unknown-linux-musl/release/rust-hello . 
+COPY --from=builder /home/rust/target/x86_64-unknown-linux-musl/release/greet-rust . 
 EXPOSE 8080
-ENTRYPOINT [ "./rust-hello" ]
+ENTRYPOINT [ "./greet-rust" ]
 ----
 
 .References

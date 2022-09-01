@@ -3,11 +3,11 @@ from flask import Flask, jsonify, request
 app = Flask(__name__)
 
 
-@app.route('/hello', methods=['GET'])
-def hello():
+@app.route('/hello/<name>', methods=['GET'])
+def greet(name: str):
     """Say hello."""
     if request.method == 'GET':
-        data = {"message": "Hello, world!"}
+        data = {"message": f"Hello, {name}!"}
         return jsonify(data)
 
 
