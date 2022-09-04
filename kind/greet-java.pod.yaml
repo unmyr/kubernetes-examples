@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: greet-java-pod
+  labels:
+    app: greet-java-app
+spec:
+  containers:
+  - name: greet-java-app
+    image: greet-java:1.0
+    imagePullPolicy: Never
+    ports:
+    - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: greet-java-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: greet-java-app
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 8080
+      protocol: TCP

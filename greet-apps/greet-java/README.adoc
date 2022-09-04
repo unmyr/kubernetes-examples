@@ -1,0 +1,187 @@
+== Example of greet apps using Spring Boot
+
+=== Build docker image
+
+. Start the docker service (if not running)
++
+[source,console]
+----
+$ sudo service docker start
+----
+
+. Build a docker image
++
+[source,console]
+----
+$ mvn spring-boot:build-image
+...
+[INFO] Successfully built image 'docker.io/library/greet-java:1.0-SNAPSHOT'
+[INFO]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  03:41 min
+[INFO] Finished at: 2022-09-04T18:59:44+09:00
+[INFO] ------------------------------------------------------------------------
+----
++
+[source,console]
+----
+$ docker image ls
+REPOSITORY                 TAG               IMAGE ID       CREATED        SIZE
+...
+greet-java                 1.0               d94d937503dc   42 years ago   273MB
+paketobuildpacks/builder   base              1a3b134d2fa6   42 years ago   1.31GB
+----
+
+[NOTE]
+.Docker service must be running
+====
+[source,console]
+----
+$ mvn spring-boot:build-image
+...
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  02:27 min
+[INFO] Finished at: 2022-09-04T18:53:47+09:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.springframework.boot:spring-boot-maven-plugin:2.7.3:build-image (default-cli) on project greet-java: Execution default-cli of goal org.springframework.boot:spring-boot-maven-plugin:2.7.3:build-image failed: Connection to the Docker daemon at 'localhost' failed with error "[2] No such file or directory"; ensure the Docker daemon is running and accessible: com.sun.jna.LastErrorException: [2] No such file or directory -> [Help 1]
+[ERROR]
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR]
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/PluginExecutionException
+----
+====
+
+=== Test docker image
+
+. Start docker container
++
+[source,console]
+----
+$ docker-compose up -d
+Creating network "greet-java_default" with the default driver
+Creating greet-java ... done
+----
+
+. Request to docker
++
+[source,console]
+----
+$ curl -s http://127.0.0.1:8080/hello/John | java3 -m json.tool
+{
+    "message": "Hello, John!"
+}
+$ docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' greet-java
+172.19.0.2
+$ curl -s http://172.19.0.2:8080/hello/John | java3 -m json.tool
+{
+    "message": "Hello, John!"
+}
+----
+
+. Remove docker container
++
+[source,console]
+----
+$ docker-compose down
+Stopping greet-java ... done
+Removing greet-java ... done
+Removing network greet-java_default
+----
+
+=== Deploy
+
+. Push to KIND
++
+[source,console]
+----
+$ kind --name kind-1 load docker-image greet-java:1.0
+Image: "greet-java:1.0" with ID "sha256:****************************************************************" not yet present on node "kind-1-control-plane", loading...
+----
++
+[source,console]
+----
+$ docker exec -it kind-1-control-plane crictl images
+IMAGE                                      TAG                  IMAGE ID            SIZE
+...
+docker.io/library/greet-java               1.0                  d94d937503dcc       278MB
+...
+----
+
+. Deploy
++
+[source,console]
+----
+$ kubectl apply -f kind/greet-java.pod.yaml
+pod/greet-java-pod created
+service/greet-java-service created
+$ kubectl get service greet-java-service
+NAME                 TYPE           CLUSTER-IP      EXTERNAL-IP      PORT(S)          AGE
+greet-java-service   LoadBalancer   10.96.134.113   172.18.254.240   3000:30088/TCP   17s
+$ kubectl logs greet-java-pod
+Setting Active Processor Count to 4
+Calculating JVM memory based on 4194772K available memory
+For more information on this calculation, see https://paketo.io/docs/reference/java-reference/#memory-calculator
+Calculated JVM Memory Configuration: -XX:MaxDirectMemorySize=10M -Xmx3608024K -XX:MaxMetaspaceSize=74747K -XX:ReservedCodeCacheSize=240M -Xss1M (Total Memory: 4194772K, Thread Count: 250, Loaded Class Count: 10783, Headroom: 0%)
+Enabling Java Native Memory Tracking
+Adding 127 container CA certificates to JVM truststore
+Spring Cloud Bindings Enabled
+Picked up JAVA_TOOL_OPTIONS: -Djava.security.properties=/layers/paketo-buildpacks_bellsoft-liberica/java-security-properties/java-security.properties -XX:+ExitOnOutOfMemoryError -XX:ActiveProcessorCount=4 -XX:MaxDirectMemorySize=10M -Xmx3608024K -XX:MaxMetaspaceSize=74747K -XX:ReservedCodeCacheSize=240M -Xss1M -XX:+UnlockDiagnosticVMOptions -XX:NativeMemoryTracking=summary -XX:+PrintNMTStatistics -Dorg.springframework.cloud.bindings.boot.enable=true
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::                (v2.7.3)
+
+2022-09-04 10:22:39.505  INFO 1 --- [           main] com.example.App                          : Starting App v1.0 using Java 17.0.4.1 on greet-java-pod with PID 1 (/workspace/BOOT-INF/classes started by cnb in /workspace)
+2022-09-04 10:22:39.510  INFO 1 --- [           main] com.example.App                          : No active profile set, falling back to 1 default profile: "default"
+2022-09-04 10:22:40.737  INFO 1 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 8080 (http)
+2022-09-04 10:22:40.752  INFO 1 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2022-09-04 10:22:40.752  INFO 1 --- [           main] org.apache.catalina.core.StandardEngine  : Starting Servlet engine: [Apache Tomcat/9.0.65]
+2022-09-04 10:22:40.844  INFO 1 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2022-09-04 10:22:40.845  INFO 1 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1246 ms
+2022-09-04 10:22:41.288  INFO 1 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8080 (http) with context path ''
+2022-09-04 10:22:41.301  INFO 1 --- [           main] com.example.App                          : Started App in 2.404 seconds (JVM running for 2.82)
+----
+
+. Test
++
+[source,console]
+----
+$ curl -s http://172.18.254.240:3000/hello/John | python3 -m json.tool
+{
+    "message": "Hello, John!"
+}
+$ curl -s http://$(kubectl get services greet-java-service -o jsonpath='{.status.loadBalancer.ingress[*].ip}'):$(kubectl get services greet-java-service -o jsonpath='{.spec.ports[0].port}')/hello/John --header "Content-Type: application/json" | python3 -m json.tool
+{
+    "message": "Hello, John!"
+}
+----
+
+. Remove apps
++
+[source,console]
+----
+$ kubectl delete -f kind/greet-java.pod.yaml
+pod "greet-java-pod" deleted
+service "greet-java-service" deleted
+----
+
+== References
+* https://spring.io/projects/spring-boot[Spring Boot | spring.io^]
+* https://spring.pleiades.io/projects/spring-boot[Spring Boot | spring.io^]
+** https://spring.pleiades.io/spring-boot/docs/current/maven-plugin/reference/htmlsingle/[Spring Boot Maven プラグインのドキュメント - リファレンス^] +
+   "mvn spring-boot:run" - Google 検索
+* https://stackoverflow.com/questions/54867295/springboot-no-main-manifest-attribute-maven[java - SpringBoot no main manifest attribute (maven) - Stack Overflow^] +
+  maven spring "no main manifest attribute" - Google 検索
+* App
+** https://spring.io/guides/gs/spring-boot-docker/[Getting Started | Spring Boot with Docker^] +
+   docker rest api java example - Google 検索
