@@ -433,6 +433,15 @@ cb34625844b6   kind      bridge    local
 docker network inspect bridge
 ----
 
+=== Secrets
+
+* https://docs.docker.com/engine/swarm/secrets/[Manage sensitive data with Docker secrets | Docker Documentation^] +
+  docker external secrets - Google Search
+
+=== Health
+
+* https://kakakakakku.hatenablog.com/entry/2019/11/22/094832[Dockerfile に HEALTHCHECK を設定すると「ヘルスチェック機能」が使えるようになる - kakakakakku blog^]
+
 == Reference
 
 .Jupyter Notebook
