@@ -106,6 +106,15 @@ kindest/node:v1.24.0   running   kind-control-plane
 * https://docs.docker.jp/engine/reference/commandline/inspect.html[docker inspect — Docker-docs-ja 20.10 ドキュメント^] +
   docker inspect format - Google 検索
 
+//^
+
+* Get health
++
+[source,shell]
+----
+docker inspect --format='{{.State.Health.Status}}' postgres-dbuser1
+----
+
 
 === Dockerfile
 
