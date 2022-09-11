@@ -11,6 +11,10 @@ start:
 	@echo -n "+ "
 	docker ps -a --filter "name=postgres" --format "{{.State}} {{.Status}}"
 	@echo -n "+ "
+	../bin/psql_wait_ready $(DB_USER_NAME)
+	@echo -n "+ "
+	docker ps -a --filter "name=postgres" --format "{{.State}} {{.Status}}"
+	@echo -n "+ "
 	../bin/psql_wait_table_created postgres $(DB_NAME) fruits_menu
 	@echo -n "+ "
 	docker ps -a --filter "name=postgres" --format "{{.State}} {{.Status}}"

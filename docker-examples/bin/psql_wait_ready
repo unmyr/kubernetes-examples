@@ -1,0 +1,21 @@
+#!/bin/bash
+PGUSER=$1
+TIMEOUT=10
+
+START_TIME=$(date +%s.%6N)
+until pg_isready -h localhost -U ${PGUSER}
+do
+    END_TIME=$(date +%s.%6N)
+    IS_TIMEOUT=$(python3 -c "import math; print((${END_TIME} - ${START_TIME}) > ${TIMEOUT})")
+    if [ ${IS_TIMEOUT} = "True" ]; then
+        1>&2 echo "\nERROR: Timeout occured!"
+        exit 1
+    fi
+    sleep 0.5
+done
+END_TIME=$(date +%s.%6N)
+
+ELAPSED=$(echo "scale=6; ${END_TIME} - ${START_TIME}" | bc)
+echo "INFO: Postgres is up : elapsed ${ELAPSED} seconds."
+
+exit 0

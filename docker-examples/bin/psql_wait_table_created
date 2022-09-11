@@ -17,7 +17,7 @@ until date '+%Y-%m-%d %H:%M:%S' && psql -h "localhost" -U "${PGUSER}" -d fruits 
 done
 END_TIME=$(date +%s.%6N)
 ELAPSED=$(echo "scale=6; ${END_TIME} - ${START_TIME}" | bc)
-echo "waited ${ELAPSED} seconds"
+echo "INFO: Postgres table existence check completed. : elapsed ${ELAPSED} seconds."
 
 exit 0
 
