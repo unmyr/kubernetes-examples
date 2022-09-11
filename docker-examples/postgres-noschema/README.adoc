@@ -1,0 +1,153 @@
+== Postgresql
+
+=== Setup
+
+. Create a `.env` file for docker-compose.
++
+[source,shell]
+.env
+----
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=********
+----
+
+. (Optional) Create a .pgpass file for your local psql installation.
++
+[source,plaintext]
+.~/.pgpass
+----
+localhost:5432:fruits:postgres:********
+localhost:5432:postgres:postgres:********
+----
++
+[source,console]
+----
+$ chmod 600 ~/.pgpass
+----
+
+=== Manage container
+
+* Start a container
++
+[source,shell]
+----
+docker-compose up -d
+----
+
+* Stop a container
++
+----
+docker-compose down
+----
+
+* Show logs in container
++
+[source,shell]
+----
+docker logs postgres-noschema
+----
+
+* Debug a container
++
+[source,shell]
+----
+docker exec -it postgres-noschema /bin/bash
+----
+
+=== Create table in postgres
+
+[source,sql]
+----
+DROP TABLE IF EXISTS fruits_menu CASCADE;
+
+CREATE TABLE fruits_menu (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(16) UNIQUE,
+  price INTEGER,
+  mod_time timestamp DEFAULT current_timestamp
+);
+
+INSERT INTO fruits_menu (name, price) VALUES
+  ('Apple', 100), ('Banana', 120), ('Orange', 110)
+----
+
+[source,console]
+----
+$ psql -h localhost -U postgres -d postgres
+psql (14.5 (Ubuntu 14.5-1.pgdg20.04+1))
+Type "help" for help.
+
+postgres=# SELECT * FROM pg_catalog.pg_tables WHERE tablename='fruits_menu';
+ schemaname |  tablename  | tableowner | tablespace | hasindexes | hasrules | hastriggers | rowsecurity
+------------+-------------+------------+------------+------------+----------+-------------+-------------
+ public     | fruits_menu | postgres   |            | t          | f        | f           | f
+(1 row)
+
+postgres=# \d
+                 List of relations
+ Schema |        Name        |   Type   |  Owner
+--------+--------------------+----------+----------
+ public | fruits_menu        | table    | postgres
+ public | fruits_menu_id_seq | sequence | postgres
+(2 rows)
+----
+
+[source,console]
+----
+$ psql -h localhost -U postgres -d postgres -c "SELECT * FROM fruits_menu;"
+ id |  name  | price |          mod_time
+----+--------+-------+----------------------------
+  1 | Apple  |   100 | 2022-09-11 03:13:27.832659
+  2 | Banana |   120 | 2022-09-11 03:13:27.832659
+  3 | Orange |   110 | 2022-09-11 03:13:27.832659
+(3 rows)
+----
+
+=== Create database and tables
+
+[source,sql]
+----
+CREATE DATABASE fruits;
+
+\connect fruits;
+
+DROP TABLE IF EXISTS fruits_menu CASCADE;
+
+CREATE TABLE fruits_menu (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(16) UNIQUE,
+  price INTEGER,
+  mod_time timestamp DEFAULT current_timestamp
+);
+
+INSERT INTO fruits_menu (name, price) VALUES
+  ('Apple', 100), ('Banana', 120), ('Orange', 110);
+----
+
+[source,console]
+----
+fruits=# SELECT * FROM pg_catalog.pg_tables WHERE tablename='fruits_menu';
+ schemaname |  tablename  | tableowner | tablespace | hasindexes | hasrules | hastriggers | rowsecurity
+------------+-------------+------------+------------+------------+----------+-------------+-------------
+ public     | fruits_menu | postgres   |            | t          | f        | f           | f
+(1 row)
+
+fruits=# \d
+                 List of relations
+ Schema |        Name        |   Type   |  Owner
+--------+--------------------+----------+----------
+ public | fruits_menu        | table    | postgres
+ public | fruits_menu_id_seq | sequence | postgres
+(2 rows)
+----
+
+[source,console]
+----
+$ psql -h localhost -U postgres -d fruits -c "SELECT * FROM fruits_menu;"
+ id |  name  | price |          mod_time
+----+--------+-------+----------------------------
+  1 | Apple  |   100 | 2022-09-11 03:23:35.538762
+  2 | Banana |   120 | 2022-09-11 03:23:35.538762
+  3 | Orange |   110 | 2022-09-11 03:23:35.538762
+(3 rows)
+----

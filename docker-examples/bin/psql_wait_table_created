@@ -1,0 +1,23 @@
+#!/bin/bash
+PGUSER=$1
+PGDATABASE=$2
+TABLE_NAME=$3
+START_TIME=$(date +%s.%6N)
+TIMEOUT=10
+until date '+%Y-%m-%d %H:%M:%S' && psql -h "localhost" -U "${PGUSER}" -d fruits -c "SELECT EXISTS (SELECT FROM pg_catalog.pg_tables WHERE tablename='${TABLE_NAME}');"; do
+    # docker ps -a --filter "name=postgres" --format "{{.State}} {{.Status}}"
+    # >&2 echo "Postgres is unavailable - sleeping"
+    END_TIME=$(date +%s.%6N)
+    IS_TIMEOUT=$(python3 -c "import math; print((${END_TIME} - ${START_TIME}) > ${TIMEOUT})")
+    if [ ${IS_TIMEOUT} = "True" ]; then
+        1>&2 echo "ERROR: Timeout occured!"
+        exit 1
+    fi
+    sleep 0.8
+done
+END_TIME=$(date +%s.%6N)
+ELAPSED=$(echo "scale=6; ${END_TIME} - ${START_TIME}" | bc)
+echo "waited ${ELAPSED} seconds"
+
+exit 0
+
