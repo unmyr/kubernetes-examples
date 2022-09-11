@@ -69,27 +69,23 @@ docker exec -it postgres-dbuser1 /bin/bash
 
 === Create database and tables
 
+* Create database and schema
++
 [source,sql]
 ----
 CREATE ROLE dbuser1 LOGIN PASSWORD '********';
-CREATE DATABASE fruits OWNER dbuser1;
-GRANT CONNECT ON DATABASE fruits to dbuser1;
-GRANT ALL PRIVILEGES ON DATABASE fruits TO dbuser1;
+CREATE DATABASE fruits;
 \connect fruits;
 CREATE SCHEMA IF NOT EXISTS dbuser1;
 GRANT USAGE ON SCHEMA dbuser1 TO dbuser1;
-GRANT SELECT,INSERT,UPDATE,DELETE ON ALL TABLES IN SCHEMA dbuser1 TO dbuser1;
-GRANT USAGE ON ALL SEQUENCES IN SCHEMA dbuser1 TO dbuser1;
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA dbuser1 TO dbuser1;
+----
 
--- DROP SCHEMA IF EXISTS dbuser1 CASCADE;
+* Create table and insert records.
++
+[source,sql]
+----
 \connect fruits;
-
 SET SCHEMA 'dbuser1';
-\conninfo
-SELECT current_database();
-
-DROP TABLE IF EXISTS fruits_menu CASCADE;
 
 CREATE TABLE fruits_menu (
   id SERIAL PRIMARY KEY,
@@ -101,17 +97,12 @@ CREATE TABLE fruits_menu (
 GRANT SELECT,INSERT,UPDATE,DELETE ON fruits_menu TO dbuser1;
 GRANT USAGE ON SEQUENCE fruits_menu_id_seq TO dbuser1;
 
-ALTER USER dbuser1 SET search_path TO 'dbuser1, pg_catalog';
-\l
-\d fruits_menu
-\dn+
-
 INSERT INTO fruits_menu (name, price) VALUES
   ('Apple', 100), ('Banana', 120), ('Orange', 110);
 ----
 
-
-
+* Show tables
++
 [source,console]
 ----
 $ psql -h localhost -U dbuser1 -d fruits
@@ -140,6 +131,8 @@ fruits=> \dn+ dbuser1
 (1 row)
 ----
 
+* Show content of a table
++
 [source,console]
 ----
 $ psql -h localhost -U dbuser1 -d fruits -c "SET SCHEMA 'dbuser1'; SELECT * FROM fruits_menu;"
