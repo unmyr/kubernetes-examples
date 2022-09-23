@@ -616,6 +616,19 @@ $ curl -s http://172.18.0.240:8080/hello --header "Content-Type: application/jso
 {"message":"Hello, world!"}
 ----
 
+=== Remove image from KIND
+
+----
+. Remove docker image from KIND
++
+[source,console]
+----
+$ docker exec -it kind-1-control-plane crictl images | grep -E 'IMAGE ID|your-image-name'
+...
+$ docker exec kind-1-control-plane crictl images | grep -E 'docker.io/library/your-image-name' | awk '{print $3}' | xargs --no-run-if-empty docker exec kind-1-control-plane crictl rmi
+Deleted: docker.io/library/your-image-name
+----
+
 == References
 
 * https://blog.framinal.life/entry/2020/04/16/022042[【手順あり】MetalLBの使い方から動きまで解説します - フラミナル^] 

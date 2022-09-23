@@ -55,7 +55,7 @@ $ curl http://172.20.0.2:8080/api/greet/John
 }
 ----
 
-. Stop docker
+. Stop and remove docker container
 
 ** Using docker
 +
@@ -136,11 +136,12 @@ service "greet-python-service" deleted
 
 . Remove docker image from KIND
 +
+[source,console]
 ----
 $ docker exec -it kind-1-control-plane crictl images | grep -E 'IMAGE ID|docker.io/library/greet-python'
 ...
 $ docker exec kind-1-control-plane crictl images | grep -E 'docker.io/library/greet-python' | awk '{print $3}' | xargs --no-run-if-empty docker exec kind-1-control-plane crictl rmi
-Deleted: docker.io/library/greet-go:0.1
+Deleted: docker.io/library/greet-python:0.1
 ----
 
 === Troubleshooting

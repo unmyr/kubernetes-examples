@@ -156,6 +156,7 @@ service "greet-go-service" deleted
 
 . Remove docker image from KIND
 +
+[source,console]
 ----
 $ docker exec -it kind-1-control-plane crictl images | grep -E 'IMAGE ID|docker.io/library/greet-go'
 ...
