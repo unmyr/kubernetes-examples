@@ -373,6 +373,8 @@ Forwarding from [::1]:3000 -> 8080
 ...
 ----
 +
+Open a new terminal and run the following command:
++
 [source,console]
 ----
 $ curl http://localhost:3000/hello \
@@ -516,6 +518,8 @@ Handling connection for 3000
 ...
 ----
 +
+Open a new terminal and run the following command:
++
 [source,console]
 ----
 $ curl -s http://localhost:3000/hello \
@@ -532,6 +536,8 @@ Forwarding from 127.0.0.1:3000 -> 8080
 Forwarding from [::1]:3000 -> 8080
 ...
 ----
++
+Open a new terminal and run the following command:
 +
 [source,console]
 ----
