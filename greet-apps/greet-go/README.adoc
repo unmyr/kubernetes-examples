@@ -154,7 +154,7 @@ deployment.apps "greet-go-app" deleted
 service "greet-go-service" deleted
 ----
 
-. Remove image
+. Remove docker image from KIND
 +
 ----
 $ docker exec -it kind-1-control-plane crictl images | grep -E 'IMAGE ID|docker.io/library/greet-go'
