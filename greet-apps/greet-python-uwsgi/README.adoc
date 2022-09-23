@@ -1,0 +1,272 @@
+== Example of Flask
+
+=== Build docker image and run docker container
+
+==== Using docker command
+
+. Build docker.
++
+[source,console]
+----
+$ docker image build --tag greet-python:0.1 .
+----
+
+. Run docker
++
+[source,console]
+----
+$ docker run --name greet-python -p 8080:8080 --rm -d greet-python:0.1
+----
+
+==== Using docker-compose
+
+. Run docker container:
++
+[source,console]
+----
+$ docker-compose up --build -d
+----
+
+=== Test docker image
+
+. Make sure the docker container is running
++
+[source,shell]
+----
+docker container ls -a --filter name=greet-python
+----
++
+[source,console]
+----
+$ docker ps -a --filter name=greet-python
+----
+
+. Request to docker
++
+[source,console]
+----
+$ curl -s http://127.0.0.1:8080/api/greet/John | python3 -m json.tool
+{
+    "message": "Hello, John!"
+}
+$ docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' greet-python
+*.*.*.*
+$ curl -s http://$(docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' greet-python):8080/api/greet/John | python3 -m json.tool
+{
+    "message": "Hello, John!"
+}
+----
+
+. Stop and remove docker container
+
+** Using docker
++
+[source,console]
+----
+$ docker stop greet-python
+----
+
+** Using docker-compose
++
+[source,console]
+----
+$ docker-compose down
+----
+
+=== Deploy
+
+. Push to KIND
++
+[source,console]
+----
+$ kind --name kind-1 load docker-image greet-python:0.1
+Image: "greet-python:0.1" with ID "sha256:89a16e5c16a1fe123f1c3c0dbf8a1e7d026e5292b1a135e868660bba0ca070e0" not yet present on node "kind-1-control-plane", loading..
+----
++
+[source,console]
+----
+$ docker exec -it kind-1-control-plane crictl images | grep -E 'IMAGE ID|greet-python'
+IMAGE                                      TAG                  IMAGE ID            SIZE
+docker.io/library/greet-python             0.1                  47e9771612ca4       181MB
+----
+
+. Deploy
++
+[source,console]
+----
+$ kubectl apply -f ../../kind/greet-python.pod.yaml
+pod/greet-python-pod created
+service/greet-python-service created
+$ kubectl get service greet-python-service
+NAME                   TYPE           CLUSTER-IP     EXTERNAL-IP      PORT(S)          AGE
+greet-python-service   LoadBalancer   10.96.252.78   172.18.254.240   3000:31628/TCP   25s
+$ kubectl logs greet-python-pod
+[uWSGI] getting INI configuration from /opt/app/app.ini
+*** Starting uWSGI 2.0.20 (64bit) on [Fri Sep 23 15:50:58 2022] ***
+compiled with version: 8.3.0 on 23 September 2022 15:37:27
+os: Linux-5.10.16.3-microsoft-standard-WSL2 #1 SMP Fri Apr 2 22:23:49 UTC 2021
+nodename: greet-python-pod
+machine: x86_64
+clock source: unix
+pcre jit disabled
+detected number of CPU cores: 4
+current working directory: /opt/app
+detected binary path: /opt/app/bin/uwsgi
+uWSGI running as root, you can use --uid/--gid/--chroot options
+*** WARNING: you are running uWSGI as root !!! (use the --uid flag) ***
+chdir() to /opt/app
+*** WARNING: you are running uWSGI without its master process manager ***
+your memory page size is 4096 bytes
+detected max file descriptor number: 1048576
+lock engine: pthread robust mutexes
+thunder lock: disabled (you can enable it with --thunder-lock)
+uWSGI http bound on 0.0.0.0:8080 fd 4
+spawned uWSGI http 1 (pid: 10)
+uwsgi socket 0 bound to TCP address 127.0.0.1:38099 (port auto-assigned) fd 3
+uWSGI running as root, you can use --uid/--gid/--chroot options
+*** WARNING: you are running uWSGI as root !!! (use the --uid flag) ***
+Python version: 3.8.13 (default, Aug 23 2022, 09:55:34)  [GCC 8.3.0]
+*** Python threads support is disabled. You can enable it with --enable-threads ***
+Python main interpreter initialized at 0x56343bf64db0
+uWSGI running as root, you can use --uid/--gid/--chroot options
+*** WARNING: you are running uWSGI as root !!! (use the --uid flag) ***
+your server socket listen backlog is limited to 100 connections
+your mercy for graceful operations on workers is 60 seconds
+mapped 101592 bytes (99 KB) for 1 cores
+*** Operational MODE: single process ***
+WSGI app 0 (mountpoint='') ready in 1 seconds on interpreter 0x56343bf64db0 pid: 1 (default app)
+mountpoint  already configured. skip.
+uWSGI running as root, you can use --uid/--gid/--chroot options
+*** WARNING: you are running uWSGI as root !!! (use the --uid flag) ***
+*** uWSGI is running in multiple interpreter mode ***
+spawned uWSGI worker 1 (and the only) (pid: 1, cores: 1)
+----
+
+. Test
++
+[source,console]
+----
+$ curl -s http://172.18.254.240:3000/api/greet/John | python3 -m json.tool
+{
+    "message": "Hello, John!"
+}
+$ curl -s http://$(kubectl get services greet-python-service -o jsonpath='{.status.loadBalancer.ingress[*].ip}'):$(kubectl get services greet-python-service -o jsonpath='{.spec.ports[0].port}')/api/greet/John --header "Content-Type: application/json" | python3 -m json.tool
+{
+    "message": "Hello, John!"
+}
+----
+
+. Remove apps
++
+[source,console]
+----
+$ kubectl delete -f ../../kind/greet-python.pod.yaml
+pod "greet-python-pod" deleted
+service "greet-python-service" deleted
+----
+
+. Remove docker image from KIND
++
+[source,console]
+----
+$ docker exec -it kind-1-control-plane crictl images | grep -E 'IMAGE ID|docker.io/library/greet-python'
+...
+$ docker exec kind-1-control-plane crictl images | grep -E 'docker.io/library/greet-python' | awk '{print $3}' | xargs --no-run-if-empty docker exec kind-1-control-plane crictl rmi
+Deleted: docker.io/library/greet-python:0.1
+----
+
+=== Troubleshooting
+
+==== unable to find "application" callable in file /opt/app/uwsgi.py
+
+----
+unable to find "application" callable in file /opt/app/uwsgi.py
+----
+
+[source,diff]
+----
+  [uwsgi]
+  http = 0.0.0.0:8080
++ module = server
++ callable = app
+  buffer-size = 32768
+  chdir = /opt/app
+  wsgi-file = /opt/app/uwsgi.py
+  logto = /opt/app/uwsgi.log
+----
+
+==== curl: (52) Empty reply from server
+
+[source,console]
+----
+$ docker commit --change='ENTRYPOINT ["/bin/bash"]' $(docker ps -a --filter "name=greet-python" --format '{{.ID}}') greet-python-debug
+$ docker run --rm -it greet-python-debug
+# apt install -y vim procps curl
+# ./bin/uwsgi --ini app.ini > app.log 2>&1 &
+[1] 420
+# curl http://127.0.0.1:8080/api/greet/John
+curl: (52) Empty reply from server
+# pgrep uwsgi | xargs -r kill -TERM
+$ docker rm $(docker ps -a --filter "name=greet-python" --format '{{.ID}}')
+$ docker image ls --filter "reference=greet-python*" --format '{{.ID}}' | xargs -r docker rmi
+----
+
+[source,diff]
+----
+@@ -1,7 +1,7 @@
+ [uwsgi]
+-socket = 0.0.0.0:8080
++http = 0.0.0.0:8080
+ chdir = /opt/app
+ wsgi-file = /opt/app/uwsgi.py
+ module = server
+ callable = app
+ buffer-size = 32768
+----
+
+==== unable to load configuration from /opt/app/bin/uwsgi
+
+**Symptom**
+
+* Successful execution of uwsgi inside a Docker container, but an error when started from docker-compose.
+
+[source,console]
+----
+$ docker-compose up --build -d
+...
+$ docker ps -a --filter name=greet-python
+CONTAINER ID   IMAGE              COMMAND                  CREATED          STATUS                      PORTS     NAMES
+96d568cbb9b2   greet-python:0.1   "/opt/app/bin/uwsgi …"   15 seconds ago   Exited (1) 13 seconds ago             greet-python
+$ docker logs greet-python
+[uWSGI] getting INI configuration from /opt/app/app.ini
+[uWSGI] getting INI configuration from /opt/app/app.ini
+unable to load configuration from /opt/app/bin/uwsgi
+----
+
+**Cause**
+
+It failed because docker-compose ran the following command:
+
+[source,shell]
+----
+/opt/app/bin/uwsgi --ini /opt/app/app.ini /opt/app/bin/uwsgi --ini /opt/app/app.ini
+----
+
+**Fix**
+
+[source,diff]
+----
+  version: "3.7"
+
+  services:
+    app:
+      build: .
+      image: greet-python:0.1
+      container_name: greet-python
+      ports:
+        - 8080:8080
+-     command: /opt/app/bin/uwsgi --ini /opt/app/app.ini
+----
+
+.References
+* https://docs.docker.com/engine/reference/builder/#entrypoint[Dockerfile reference | Docker Documentation^]
