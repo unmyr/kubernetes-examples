@@ -2,8 +2,7 @@ version: "3.7"
 
 services:
   app:
-    build: .
-    image: greet-java:1.0
+    image: greet-java:0.1
     container_name: greet-java
     ports:
       - 8080:8080
