@@ -6,6 +6,7 @@
 
 . Build docker.
 +
+[source,console]
 ----
 $ docker image build --tag greet-python:0.1 .
 ----
@@ -21,8 +22,9 @@ $ docker run --name greet-python -p 8080:8080 --rm -d greet-python:0.1
 
 . Run docker container:
 +
+[source,console]
 ----
-$ docker-compose up -d
+$ docker-compose up --build -d
 ----
 
 === Test docker image
@@ -48,8 +50,8 @@ $ curl http://127.0.0.1:8080/api/greet/John
   "message": "Hello, John!"
 }
 $ docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' greet-python
-172.20.0.2
-$ curl http://172.20.0.2:8080/api/greet/John
+172.*.*.*
+$ curl http://$(docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' greet-python):8080/api/greet/John
 {
   "message": "Hello, John!"
 }
