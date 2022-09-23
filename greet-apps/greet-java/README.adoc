@@ -15,7 +15,7 @@ $ sudo service docker start
 ----
 $ mvn spring-boot:build-image
 ...
-[INFO] Successfully built image 'docker.io/library/greet-java:1.0-SNAPSHOT'
+[INFO] Successfully built image 'docker.io/library/greet-java:0.1'
 [INFO]
 [INFO] ------------------------------------------------------------------------
 [INFO] BUILD SUCCESS
@@ -30,7 +30,7 @@ $ mvn spring-boot:build-image
 $ docker image ls
 REPOSITORY                 TAG               IMAGE ID       CREATED        SIZE
 ...
-greet-java                 1.0               d94d937503dc   42 years ago   273MB
+greet-java                 0.1               d94d937503dc   42 years ago   273MB
 paketobuildpacks/builder   base              1a3b134d2fa6   42 years ago   1.31GB
 ----
 
@@ -72,13 +72,13 @@ Creating greet-java ... done
 +
 [source,console]
 ----
-$ curl -s http://127.0.0.1:8080/hello/John | java3 -m json.tool
+$ curl -s http://127.0.0.1:8080/hello/John | python3 -m json.tool
 {
     "message": "Hello, John!"
 }
 $ docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' greet-java
 172.19.0.2
-$ curl -s http://172.19.0.2:8080/hello/John | java3 -m json.tool
+$ curl -s http://172.19.0.2:8080/hello/John | python3 -m json.tool
 {
     "message": "Hello, John!"
 }
@@ -100,8 +100,8 @@ Removing network greet-java_default
 +
 [source,console]
 ----
-$ kind --name kind-1 load docker-image greet-java:1.0
-Image: "greet-java:1.0" with ID "sha256:****************************************************************" not yet present on node "kind-1-control-plane", loading...
+$ kind --name kind-1 load docker-image greet-java:0.1
+Image: "greet-java:0.1" with ID "sha256:****************************************************************" not yet present on node "kind-1-control-plane", loading...
 ----
 +
 [source,console]
@@ -109,7 +109,7 @@ Image: "greet-java:1.0" with ID "sha256:****************************************
 $ docker exec -it kind-1-control-plane crictl images
 IMAGE                                      TAG                  IMAGE ID            SIZE
 ...
-docker.io/library/greet-java               1.0                  d94d937503dcc       278MB
+docker.io/library/greet-java               0.1                  d94d937503dcc       278MB
 ...
 ----
 
@@ -141,7 +141,7 @@ Picked up JAVA_TOOL_OPTIONS: -Djava.security.properties=/layers/paketo-buildpack
  =========|_|==============|___/=/_/_/_/
  :: Spring Boot ::                (v2.7.3)
 
-2022-09-04 10:22:39.505  INFO 1 --- [           main] com.example.App                          : Starting App v1.0 using Java 17.0.4.1 on greet-java-pod with PID 1 (/workspace/BOOT-INF/classes started by cnb in /workspace)
+2022-09-04 10:22:39.505  INFO 1 --- [           main] com.example.App                          : Starting App v0.1 using Java 17.0.4.1 on greet-java-pod with PID 1 (/workspace/BOOT-INF/classes started by cnb in /workspace)
 2022-09-04 10:22:39.510  INFO 1 --- [           main] com.example.App                          : No active profile set, falling back to 1 default profile: "default"
 2022-09-04 10:22:40.737  INFO 1 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 8080 (http)
 2022-09-04 10:22:40.752  INFO 1 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
