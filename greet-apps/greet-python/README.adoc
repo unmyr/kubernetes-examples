@@ -1,6 +1,8 @@
 == Example of Flask
 
-=== Build docker
+=== Build docker image and run docker container
+
+==== Using docker command
 
 . Build docker.
 +
@@ -8,14 +10,24 @@
 $ docker image build --tag greet-python:0.1 .
 ----
 
-=== Test docker image
-
 . Run docker
 +
 [source,console]
 ----
 $ docker run --name greet-python -p 8080:8080 --rm -d greet-python:0.1
 ----
+
+==== Using docker-compose
+
+. Run docker container:
++
+----
+$ docker-compose up -d
+----
+
+=== Test docker image
+
+. Make sure the docker container is running
 +
 [source,shell]
 ----
@@ -31,23 +43,32 @@ $ docker ps --filter name=greet-python
 +
 [source,console]
 ----
-$ curl http://127.0.0.1:8080/hello/John
+$ curl http://127.0.0.1:8080/api/greet/John
 {
   "message": "Hello, John!"
 }
 $ docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' greet-python
-172.17.0.2
-$ curl http://172.17.0.2:8080/hello/John
+172.20.0.2
+$ curl http://172.20.0.2:8080/api/greet/John
 {
   "message": "Hello, John!"
 }
 ----
 
 . Stop docker
+
+** Using docker
 +
 [source,console]
 ----
 $ docker stop greet-python
+----
+
+** Using docker-compose
++
+[source,console]
+----
+$ docker-compose down
 ----
 
 === Deploy
@@ -57,16 +78,14 @@ $ docker stop greet-python
 [source,console]
 ----
 $ kind --name kind-1 load docker-image greet-python:0.1
-Image: "greet-python:0.3" with ID "sha256:5dc24d7b2045d9d01678a8f7945491ed3f83ddd461736a6371b8f52f42004b67" not yet present on node "kind-1-control-plane", loading...
+Image: "greet-python:0.1" with ID "sha256:89a16e5c16a1fe123f1c3c0dbf8a1e7d026e5292b1a135e868660bba0ca070e0" not yet present on node "kind-1-control-plane", loading..
 ----
 +
 [source,console]
 ----
-$ docker exec -it kind-1-control-plane crictl images
+$ docker exec -it kind-1-control-plane crictl images | grep -E 'IMAGE ID|greet-python'
 IMAGE                                      TAG                  IMAGE ID            SIZE
-...
-docker.io/library/greet-python             0.1                  30e046f42f56a       126MB
-...
+docker.io/library/greet-python             0.1                  89a16e5c16a1f       126MB
 ----
 
 . Deploy
@@ -78,29 +97,29 @@ pod/greet-python-pod created
 service/greet-python-service created
 $ kubectl get service greet-python-service
 NAME                   TYPE           CLUSTER-IP    EXTERNAL-IP      PORT(S)          AGE
-greet-python-service   LoadBalancer   10.96.59.15   172.18.254.240   3000:31687/TCP   21s
+greet-python-service   LoadBalancer   10.96.11.59   172.18.254.240   3000:31186/TCP   13s
 $ kubectl logs greet-python-pod
  * Serving Flask app 'server'
  * Debug mode: on
 WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
  * Running on all addresses (0.0.0.0)
  * Running on http://127.0.0.1:8080
- * Running on http://10.244.0.6:8080
+ * Running on http://10.244.0.7:8080
 Press CTRL+C to quit
  * Restarting with stat
  * Debugger is active!
- * Debugger PIN: 654-120-021
+ * Debugger PIN: 105-396-156
 ----
 
 . Test
 +
 [source,console]
 ----
-$ curl -s http://172.18.254.240:3000/hello/John
+$ curl -s http://172.18.254.240:3000/api/greet/John
 {
   "message": "Hello, John!"
 }
-$ curl -s http://$(kubectl get services greet-python-service -o jsonpath='{.status.loadBalancer.ingress[*].ip}'):$(kubectl get services greet-python-service -o jsonpath='{.spec.ports[0].port}')/hello/John --header "Content-Type: application/json" | python3 -m json.tool
+$ curl -s http://$(kubectl get services greet-python-service -o jsonpath='{.status.loadBalancer.ingress[*].ip}'):$(kubectl get services greet-python-service -o jsonpath='{.spec.ports[0].port}')/api/greet/John --header "Content-Type: application/json" | python3 -m json.tool
 {
     "message": "Hello, John!"
 }
@@ -113,6 +132,15 @@ $ curl -s http://$(kubectl get services greet-python-service -o jsonpath='{.stat
 $ kubectl delete -f kind/greet-python.pod.yaml
 pod "greet-python-pod" deleted
 service "greet-python-service" deleted
+----
+
+. Remove docker image from KIND
++
+----
+$ docker exec -it kind-1-control-plane crictl images | grep -E 'IMAGE ID|docker.io/library/greet-python'
+...
+$ docker exec kind-1-control-plane crictl images | grep -E 'docker.io/library/greet-python' | awk '{print $3}' | xargs --no-run-if-empty docker exec kind-1-control-plane crictl rmi
+Deleted: docker.io/library/greet-go:0.1
 ----
 
 === Troubleshooting
@@ -135,7 +163,7 @@ The solution: listen on all interfaces.
 ----
 $ docker run --name greet-python -p 8080:8080 --rm -d greet-python:0.1
 ...
-$ curl http://127.0.0.1:8080/hello
+$ curl http://127.0.0.1:8080/api/greet
 curl: (7) Failed to connect to 127.0.0.1 port 8080: Connection refused
 ----
 
@@ -186,7 +214,7 @@ python    8 root    5u  IPv4 1311491      0t0  TCP *:8080 (LISTEN)
 
 [source,console]
 ----
-$ curl -v http://172.18.254.240:3000/hello
+$ curl -v http://172.18.254.240:3000/api/greet
 *   Trying 172.18.254.240:3000...
 * TCP_NODELAY set
 * connect to 172.18.254.240 port 3000 failed: No route to host

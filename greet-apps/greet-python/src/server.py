@@ -3,7 +3,7 @@ from flask import Flask, jsonify, request
 app = Flask(__name__)
 
 
-@app.route('/hello/<name>', methods=['GET'])
+@app.route('/api/greet/<name>', methods=['GET'])
 def greet(name: str):
     """Say hello."""
     if request.method == 'GET':
