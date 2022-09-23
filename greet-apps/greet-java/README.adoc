@@ -15,14 +15,8 @@ $ sudo service docker start
 ----
 $ mvn spring-boot:build-image
 ...
-[INFO] Successfully built image 'docker.io/library/greet-java:0.1'
-[INFO]
-[INFO] ------------------------------------------------------------------------
-[INFO] BUILD SUCCESS
-[INFO] ------------------------------------------------------------------------
-[INFO] Total time:  03:41 min
-[INFO] Finished at: 2022-09-04T18:59:44+09:00
-[INFO] ------------------------------------------------------------------------
+[INFO] Successfully built image 'docker.io/library/greet-java:0.1
+...
 ----
 +
 [source,console]
@@ -30,8 +24,8 @@ $ mvn spring-boot:build-image
 $ docker image ls
 REPOSITORY                 TAG               IMAGE ID       CREATED        SIZE
 ...
-greet-java                 0.1               d94d937503dc   42 years ago   273MB
-paketobuildpacks/builder   base              1a3b134d2fa6   42 years ago   1.31GB
+greet-java                 0.1               99da56554ee6   42 years ago        274MB
+paketobuildpacks/builder   base              36312f3c7f1f   42 years ago        1.19GB
 ----
 
 [NOTE]
@@ -72,19 +66,19 @@ Creating greet-java ... done
 +
 [source,console]
 ----
-$ curl -s http://127.0.0.1:8080/hello/John | python3 -m json.tool
+$ curl -s http://127.0.0.1:8080/api/greet/John | python3 -m json.tool
 {
     "message": "Hello, John!"
 }
 $ docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' greet-java
-172.19.0.2
-$ curl -s http://172.19.0.2:8080/hello/John | python3 -m json.tool
+172.*.*.*
+$ curl -s http://$(docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' greet-java):8080/api/greet/John | python3 -m json.tool
 {
     "message": "Hello, John!"
 }
 ----
 
-. Remove docker container
+. Stop and remove docker container
 +
 [source,console]
 ----
@@ -106,11 +100,9 @@ Image: "greet-java:0.1" with ID "sha256:****************************************
 +
 [source,console]
 ----
-$ docker exec -it kind-1-control-plane crictl images
+$ docker exec -it kind-1-control-plane crictl images | grep -E 'IMAGE ID|greet-java'
 IMAGE                                      TAG                  IMAGE ID            SIZE
-...
-docker.io/library/greet-java               0.1                  d94d937503dcc       278MB
-...
+docker.io/library/greet-java               0.1                  99da56554ee6b       278MB
 ----
 
 . Deploy
@@ -121,17 +113,17 @@ $ kubectl apply -f kind/greet-java.pod.yaml
 pod/greet-java-pod created
 service/greet-java-service created
 $ kubectl get service greet-java-service
-NAME                 TYPE           CLUSTER-IP      EXTERNAL-IP      PORT(S)          AGE
-greet-java-service   LoadBalancer   10.96.134.113   172.18.254.240   3000:30088/TCP   17s
+NAME                 TYPE           CLUSTER-IP     EXTERNAL-IP      PORT(S)          AGE
+greet-java-service   LoadBalancer   10.96.135.89   172.18.254.240   3000:30769/TCP   12s
 $ kubectl logs greet-java-pod
 Setting Active Processor Count to 4
-Calculating JVM memory based on 4194772K available memory
+Calculating JVM memory based on 2716860K available memory
 For more information on this calculation, see https://paketo.io/docs/reference/java-reference/#memory-calculator
-Calculated JVM Memory Configuration: -XX:MaxDirectMemorySize=10M -Xmx3608024K -XX:MaxMetaspaceSize=74747K -XX:ReservedCodeCacheSize=240M -Xss1M (Total Memory: 4194772K, Thread Count: 250, Loaded Class Count: 10783, Headroom: 0%)
+Calculated JVM Memory Configuration: -XX:MaxDirectMemorySize=10M -Xmx2130112K -XX:MaxMetaspaceSize=74747K -XX:ReservedCodeCacheSize=240M -Xss1M (Total Memory: 2716860K, Thread Count: 250, Loaded Class Count: 10783, Headroom: 0%)
 Enabling Java Native Memory Tracking
 Adding 127 container CA certificates to JVM truststore
 Spring Cloud Bindings Enabled
-Picked up JAVA_TOOL_OPTIONS: -Djava.security.properties=/layers/paketo-buildpacks_bellsoft-liberica/java-security-properties/java-security.properties -XX:+ExitOnOutOfMemoryError -XX:ActiveProcessorCount=4 -XX:MaxDirectMemorySize=10M -Xmx3608024K -XX:MaxMetaspaceSize=74747K -XX:ReservedCodeCacheSize=240M -Xss1M -XX:+UnlockDiagnosticVMOptions -XX:NativeMemoryTracking=summary -XX:+PrintNMTStatistics -Dorg.springframework.cloud.bindings.boot.enable=true
+Picked up JAVA_TOOL_OPTIONS: -Djava.security.properties=/layers/paketo-buildpacks_bellsoft-liberica/java-security-properties/java-security.properties -XX:+ExitOnOutOfMemoryError -XX:ActiveProcessorCount=4 -XX:MaxDirectMemorySize=10M -Xmx2130112K -XX:MaxMetaspaceSize=74747K -XX:ReservedCodeCacheSize=240M -Xss1M -XX:+UnlockDiagnosticVMOptions -XX:NativeMemoryTracking=summary -XX:+PrintNMTStatistics -Dorg.springframework.cloud.bindings.boot.enable=true
 
   .   ____          _            __ _ _
  /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
@@ -141,26 +133,26 @@ Picked up JAVA_TOOL_OPTIONS: -Djava.security.properties=/layers/paketo-buildpack
  =========|_|==============|___/=/_/_/_/
  :: Spring Boot ::                (v2.7.3)
 
-2022-09-04 10:22:39.505  INFO 1 --- [           main] com.example.App                          : Starting App v0.1 using Java 17.0.4.1 on greet-java-pod with PID 1 (/workspace/BOOT-INF/classes started by cnb in /workspace)
-2022-09-04 10:22:39.510  INFO 1 --- [           main] com.example.App                          : No active profile set, falling back to 1 default profile: "default"
-2022-09-04 10:22:40.737  INFO 1 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 8080 (http)
-2022-09-04 10:22:40.752  INFO 1 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
-2022-09-04 10:22:40.752  INFO 1 --- [           main] org.apache.catalina.core.StandardEngine  : Starting Servlet engine: [Apache Tomcat/9.0.65]
-2022-09-04 10:22:40.844  INFO 1 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
-2022-09-04 10:22:40.845  INFO 1 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1246 ms
-2022-09-04 10:22:41.288  INFO 1 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8080 (http) with context path ''
-2022-09-04 10:22:41.301  INFO 1 --- [           main] com.example.App                          : Started App in 2.404 seconds (JVM running for 2.82)
+2022-09-23 10:22:29.582  INFO 1 --- [           main] com.example.App                          : Starting App v0.1 using Java 17.0.4.1 on greet-java-pod with PID 1 (/workspace/BOOT-INF/classes started by cnb in /workspace)
+2022-09-23 10:22:29.592  INFO 1 --- [           main] com.example.App                          : No active profile set, falling back to 1 default profile: "default"
+2022-09-23 10:22:31.548  INFO 1 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 8080 (http)
+2022-09-23 10:22:31.568  INFO 1 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2022-09-23 10:22:31.568  INFO 1 --- [           main] org.apache.catalina.core.StandardEngine  : Starting Servlet engine: [Apache Tomcat/9.0.65]
+2022-09-23 10:22:31.708  INFO 1 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2022-09-23 10:22:31.709  INFO 1 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1952 ms
+2022-09-23 10:22:32.322  INFO 1 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8080 (http) with context path ''
+2022-09-23 10:22:32.351  INFO 1 --- [           main] com.example.App                          : Started App in 3.532 seconds (JVM running for 4.861)
 ----
 
 . Test
 +
 [source,console]
 ----
-$ curl -s http://172.18.254.240:3000/hello/John | python3 -m json.tool
+$ curl -s http://172.18.254.240:3000/api/greet/John | python3 -m json.tool
 {
     "message": "Hello, John!"
 }
-$ curl -s http://$(kubectl get services greet-java-service -o jsonpath='{.status.loadBalancer.ingress[*].ip}'):$(kubectl get services greet-java-service -o jsonpath='{.spec.ports[0].port}')/hello/John --header "Content-Type: application/json" | python3 -m json.tool
+$ curl -s http://$(kubectl get services greet-java-service -o jsonpath='{.status.loadBalancer.ingress[*].ip}'):$(kubectl get services greet-java-service -o jsonpath='{.spec.ports[0].port}')/api/greet/John --header "Content-Type: application/json" | python3 -m json.tool
 {
     "message": "Hello, John!"
 }
@@ -173,6 +165,16 @@ $ curl -s http://$(kubectl get services greet-java-service -o jsonpath='{.status
 $ kubectl delete -f kind/greet-java.pod.yaml
 pod "greet-java-pod" deleted
 service "greet-java-service" deleted
+----
+
+. Remove docker image from KIND
++
+[source,console]
+----
+$ docker exec -it kind-1-control-plane crictl images | grep -E 'IMAGE ID|docker.io/library/greet-java'
+...
+$ docker exec kind-1-control-plane crictl images | grep -E 'docker.io/library/greet-java' | awk '{print $3}' | xargs --no-run-if-empty docker exec kind-1-control-plane crictl rmi
+Deleted: docker.io/library/greet-java:0.1
 ----
 
 == References

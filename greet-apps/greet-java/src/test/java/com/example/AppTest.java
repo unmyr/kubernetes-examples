@@ -22,7 +22,7 @@ public class AppTest {
 	@Test
 	public void paramGreetingShouldReturnTailoredMessage() throws Exception {
 
-		this.mockMvc.perform(get("/hello/Spring Community"))
+		this.mockMvc.perform(get("/api/greet/Spring Community"))
 				.andDo(print()).andExpect(status().isOk())
 				.andExpect(jsonPath("$.message").value("Hello, Spring Community!"));
 	}

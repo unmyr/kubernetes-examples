@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class App {
   private static final String template = "Hello, %s!";
 
-  @GetMapping("/hello/{name}")
+  @GetMapping("/api/greet/{name}")
   public Map<String, String> greeting(@PathVariable(value = "name") String name) {
     HashMap<String, String> map = new HashMap<>();
     map.put("message", String.format(template, name));
