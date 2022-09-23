@@ -618,7 +618,6 @@ $ curl -s http://172.18.0.240:8080/hello --header "Content-Type: application/jso
 
 === Remove image from KIND
 
-----
 . Remove docker image from KIND
 +
 [source,console]
