@@ -31,13 +31,13 @@ $ docker ps --filter name=greet-go
 +
 [source,console]
 ----
-$ curl -s http://127.0.0.1:8080/hello/John | python3 -m json.tool
+$ curl -s http://127.0.0.1:8080/api/greet/John | python3 -m json.tool
 {
     "message": "Hello, John!"
 }
 $ docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' greet-go
 172.17.0.2
-$ curl http://172.17.0.2:8080/hello/John | python3 -m json.tool
+$ curl -s http://172.17.0.2:8080/api/greet/John | python3 -m json.tool
 {
   "message": "Hello, John!"
 }
@@ -91,11 +91,11 @@ $ kubectl logs greet-go-pod
 +
 [source,console]
 ----
-$ curl -s http://172.18.254.240:3000/hello/John | python3 -m json.tool
+$ curl -s http://172.18.254.240:3000/api/greet/John | python3 -m json.tool
 {
   "message": "Hello, John!"
 }
-$ curl -s http://$(kubectl get services greet-go-service -o jsonpath='{.status.loadBalancer.ingress[*].ip}'):$(kubectl get services greet-go-service -o jsonpath='{.spec.ports[0].port}')/hello/John --header "Content-Type: application/json" | python3 -m json.tool
+$ curl -s http://$(kubectl get services greet-go-service -o jsonpath='{.status.loadBalancer.ingress[*].ip}'):$(kubectl get services greet-go-service -o jsonpath='{.spec.ports[0].port}')/api/greet/John --header "Content-Type: application/json" | python3 -m json.tool
 {
     "message": "Hello, John!"
 }
@@ -135,11 +135,11 @@ greet-go-service   LoadBalancer   10.96.0.176   172.18.254.240   3000:30153/TCP 
 +
 [source,console]
 ----
-$ curl -s http://172.18.254.240:3000/hello/John | python3 -m json.tool
+$ curl -s http://172.18.254.240:3000/api/greet/John | python3 -m json.tool
 {
   "message": "Hello, John!"
 }
-$ curl -s http://$(kubectl get services greet-go-service -o jsonpath='{.status.loadBalancer.ingress[*].ip}'):$(kubectl get services greet-go-service -o jsonpath='{.spec.ports[0].port}')/hello/John --header "Content-Type: application/json" | python3 -m json.tool
+$ curl -s http://$(kubectl get services greet-go-service -o jsonpath='{.status.loadBalancer.ingress[*].ip}'):$(kubectl get services greet-go-service -o jsonpath='{.spec.ports[0].port}')/api/greet/John --header "Content-Type: application/json" | python3 -m json.tool
 {
     "message": "Hello, John!"
 }
@@ -152,4 +152,13 @@ $ curl -s http://$(kubectl get services greet-go-service -o jsonpath='{.status.l
 $ kubectl delete -f kind/greet-go.deployment.yaml
 deployment.apps "greet-go-app" deleted
 service "greet-go-service" deleted
+----
+
+. Remove image
++
+----
+$ docker exec -it kind-1-control-plane crictl images | grep -E 'IMAGE ID|docker.io/library/greet-go'
+...
+$ docker exec kind-1-control-plane crictl images | grep -E 'docker.io/library/greet-go' | awk '{print $3}' | xargs --no-run-if-empty docker exec kind-1-control-plane crictl rmi
+Deleted: docker.io/library/greet-go:0.1
 ----

@@ -9,7 +9,7 @@ import (
 )
 
 func greetHandler(w http.ResponseWriter, r *http.Request) {
-	sub := strings.TrimPrefix(r.URL.Path, "/hello")
+	sub := strings.TrimPrefix(r.URL.Path, "/api/greet")
 	_, name := filepath.Split(sub)
 	var m any
 	if name != "" {
@@ -33,7 +33,7 @@ func greetHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/hello/", greetHandler)
+	mux.HandleFunc("/api/greet/", greetHandler)
 
 	http.ListenAndServe(":8080", mux)
 }
