@@ -179,6 +179,7 @@ Deleted: docker.io/library/greet-python:0.1
 
 ==== unable to find "application" callable in file /opt/app/uwsgi.py
 
+[source,plaintext]
 ----
 unable to find "application" callable in file /opt/app/uwsgi.py
 ----

@@ -4,6 +4,7 @@
 
 . Build docker.
 +
+[source,console]
 ----
 $ docker image build --tag greet-go:0.1 .
 ----

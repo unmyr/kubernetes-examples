@@ -75,6 +75,7 @@
         "pgdg",
         "pgpass",
         "PGPASSWORD",
+        "pgrep",
         "podsecuritypolicy",
         "procps",
         "proto",

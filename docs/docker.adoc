@@ -63,6 +63,22 @@ sudo service docker start
 
 === Show information
 
+==== Images
+
+* Filter by name
++
+[source,console]
+----
+$ docker image ls --filter "reference=greet-python*" --format '{{.ID}}'
+----
+
+* Filter '<none>'
++
+[source,console]
+----
+$ docker images --filter 'dangling=true'
+----
+
 ==== Container
 
 * 表示可能なデータを確認する
@@ -336,6 +352,17 @@ ENTRYPOINT [ "./greet-rust" ]
 * https://zenn.dev/kyoheiu/articles/dcefe0c75f0e17[(1.59.0対応) Rustを軽量イメージ化するためのDockerfile^] +
   rust alpine image - Google 検索
 
+=== Remove image/container
+
+* Removes all dangling images
++
+[source,shell]
+----
+docker image prune
+----
++
+https://stackoverflow.com/questions/50357285/how-to-delete-image-from-previous-stage-on-docker-multi-stage-build[How to delete image from previous stage on Docker multi-stage build - Stack Overflow^]
+
 === docker run
 
 ==== docker run --link
@@ -441,6 +468,46 @@ docker network inspect bridge
 === Health
 
 * https://kakakakakku.hatenablog.com/entry/2019/11/22/094832[Dockerfile に HEALTHCHECK を設定すると「ヘルスチェック機能」が使えるようになる - kakakakakku blog^]
+
+=== docker debug
+
+==== debug exited container
+
+[source,console]
+----
+$ docker commit --change='ENTRYPOINT []' c709aad62f07 greet-python-debug
+$ docker run --rm -it greet-python-debug /bin/bash
+----
+
+=== Install
+
+* Install vim
++
+[source,shell]
+----
+apt-get install vim
+----
+
+* Install ps
++
+[source,shell]
+----
+apt-get install procps
+----
+
+* Install arp/arping (optional)
++
+[source,shell]
+----
+sudo apt install -y net-tools arping
+----
+
+* Install `lsof`
++
+[source,shell]
+----
+apt install lsof
+----
 
 == Reference
 

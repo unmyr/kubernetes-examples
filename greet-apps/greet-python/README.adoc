@@ -163,6 +163,7 @@ The solution: listen on all interfaces.
 +    app.run(debug=True, host="0.0.0.0", port=8080)
 ----
 
+[source,console]
 ----
 $ docker run --name greet-python -p 8080:8080 --rm -d greet-python:0.1
 ...
@@ -172,6 +173,7 @@ curl: (7) Failed to connect to 127.0.0.1 port 8080: Connection refused
 
 listen only localhost:8080.
 
+[source,console]
 ----
 $ docker exec -it greet-python /bin/bash
 root@53cb8c0d4173:/# apt update
@@ -233,6 +235,7 @@ Pod IP        Container port
 10.244.0.15   8080
 ----
 
+[source,console]
 ----
 $ kubectl get endpoints greet-python-service
 NAME                     ENDPOINTS   AGE
