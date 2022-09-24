@@ -1,0 +1,93 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: postgres-pod
+  labels:
+    app: postgres
+spec:
+  containers:
+  - name: postgres
+    image: postgres:14-alpine
+    imagePullPolicy: Always
+    ports:
+    - containerPort: 5432
+    envFrom:
+    - secretRef:
+        name: postgres-secret
+    startupProbe:
+      exec:
+        command: ["pg_isready", "-d", "fruits", "-U", "dbuser1"]
+      initialDelaySeconds: 5
+      periodSeconds: 5
+      timeoutSeconds: 30
+    volumeMounts:
+    - mountPath: /docker-entrypoint-initdb.d
+      name: pg-init-user-db
+  volumes:
+  - name: pg-init-user-db
+    configMap:
+      name: pg-initdb-config
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pg-initdb-config
+data:
+  1_init_user_db.sh: |
+    #!/bin/bash
+    DB_NAME="fruits"
+
+    echo "DB_NAME='${DB_NAME}', POSTGRES_USER='${POSTGRES_USER}'"
+    psql -U ${POSTGRES_USER} <<EOF
+    CREATE DATABASE ${DB_NAME};
+
+    \connect ${DB_NAME};
+    CREATE ROLE ${ADDITIONAL_USER} WITH LOGIN PASSWORD '${ADDITIONAL_PASSWORD}';
+    CREATE SCHEMA IF NOT EXISTS ${ADDITIONAL_USER};
+    GRANT USAGE ON SCHEMA ${ADDITIONAL_USER} TO ${ADDITIONAL_USER};
+    EOF
+  2_create_tables.sh: |
+    #!/bin/bash
+    DB_NAME="fruits"
+
+    echo "DB_NAME='${DB_NAME}', POSTGRES_USER='${POSTGRES_USER}', ADDITIONAL_USER='${ADDITIONAL_USER}'"
+    psql -U ${POSTGRES_USER} <<EOF
+    \connect ${DB_NAME};
+    \conninfo
+
+    -- SET SCHEMA '${ADDITIONAL_USER}';
+    SET search_path TO '${ADDITIONAL_USER}';
+    COMMIT;
+    SELECT current_schema;
+    CREATE TABLE fruits_menu (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(16) UNIQUE,
+      price INTEGER,
+      mod_time timestamp DEFAULT current_timestamp
+    );
+
+    GRANT SELECT,INSERT,UPDATE,DELETE ON fruits_menu TO ${ADDITIONAL_USER};
+    GRANT USAGE ON SEQUENCE fruits_menu_id_seq TO ${ADDITIONAL_USER};
+
+    INSERT INTO fruits_menu (name, price) VALUES
+      ('Apple', 100), ('Banana', 120), ('Orange', 110);
+
+    \l
+    \dt ${ADDITIONAL_USER}.*
+    \d fruits_menu
+    \dn+
+    EOF
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: postgres
+  ports:
+    - name: http
+      port: 5432
+      targetPort: 5432
+      protocol: TCP

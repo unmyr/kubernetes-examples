@@ -1,0 +1,177 @@
+== Postgresql
+
+=== Setup
+
+. Create a `.env` file.
++
+[source,shell]
+.env
+----
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=:********
+ADDITIONAL_USER=dbuser1
+ADDITIONAL_PASSWORD=:********
+----
+
+. Create secrets
++
+[source,console]
+----
+$ ./secret.sh create
+secret/postgres-secret created
+----
++
+.References
+** https://kubernetes.io/ja/docs/tasks/configmap-secret/managing-secret-using-config-file/[設定ファイルを使用してSecretを管理する | Kubernetes^]
+
+. Create pod
++
+[source,console]
+----
+$ kubectl apply -f postgres.pod.yaml
+pod/postgres-pod created
+configmap/pg-initdb-config created
+service/postgres-service created
+----
+
+. Add pgpass entry(optional)
++
+[source,plaintext]
+----
+xxx.xxx.xxx.xxx:5432:fruits:dbuser1:******
+xxx.xxx.xxx.xxx:5432:fruits:postgres:******
+----
+
+. Run sql
++
+[source,console]
+----
+$ kubectl get services postgres-service -o jsonpath='{.status.loadBalancer.ingress[*].ip}'
+xxx.xxx.xxx.xxx
+$ psql -h $(kubectl get services postgres-service -o jsonpath='{.status.loadBalancer.ingress[*].ip}') -d fruits -U dbuser1 -f test.sql
+   search_path
+-----------------
+ "$user", public
+(1 row)
+
+ id |  name  | price |         mod_time
+----+--------+-------+---------------------------
+  1 | Apple  |   100 | 2022-09-24 18:21:04.03783
+  2 | Banana |   120 | 2022-09-24 18:21:04.03783
+  3 | Orange |   112 | 2022-09-24 18:21:04.03783
+(3 rows)
+
+ id |  name  | price |         mod_time
+----+--------+-------+---------------------------
+  1 | Apple  |   100 | 2022-09-24 18:21:04.03783
+  2 | Banana |   120 | 2022-09-24 18:21:04.03783
+  3 | Orange |   112 | 2022-09-24 18:21:04.03783
+(3 rows)
+
+INSERT 0 1
+UPDATE 1
+DELETE 1
+----
+
+. Clean
++
+[source,console]
+----
+$ kubectl delete -f postgres.pod.yaml
+pod "postgres-pod" deleted
+configmap "pg-initdb-config" deleted
+service "postgres-service" deleted
+$ ./secret.sh delete
+secret "postgres-secret" deleted
+----
+
+=== Troubleshooting
+
+==== psql: error: connection to server 
+
+
+* OK
++
+[source,yaml]
+----
+    env:
+    - name: POSTGRES_USER
+      value: postgres
+    - name: POSTGRES_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: postgres-secret
+          key: POSTGRES_PASSWORD
+    - name: ADDITIONAL_USER
+      value: dbuser1
+    - name: ADDITIONAL_PASSWORD
+      value: abcdefgh
+----
+
+* NG
++
+[source,yaml]
+----
+    env:
+    - name: POSTGRES_USER
+      value: postgres
+    - name: POSTGRES_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: postgres-secret
+          key: POSTGRES_PASSWORD
+    - name: ADDITIONAL_USER
+      value: dbuser1
+    - name: ADDITIONAL_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: postgres-secret
+          key: ADDITIONAL_PASSWORD -- here
+----
++
+[source,console]
+----
+$ psql -h xxx.xxx.xxx.xxx -d fruits -U dbuser1
+Password for user dbuser1:
+psql: error: connection to server at "xxx.xxx.xxx.xxx", port 5432 failed: FATAL:  password authentication failed for user "dbuser1"
+----
++
+[source,console]
+----
+$ kubectl logs postgres-pod
+...
+2022-09-24 15:38:08.855 UTC [1] LOG:  database system is ready to accept connections
+2022-09-24 15:38:21.235 UTC [71] FATAL:  password authentication failed for user "dbuser1"
+2022-09-24 15:38:21.235 UTC [71] DETAIL:  Connection matched pg_hba.conf line 100: "host all all all scram-sha-256"
+----
+
+* Cause
+
+* Secret contains newline.
++
+[source,diff]
+----
+@@ -22,10 +22,10 @@ metadata:
+   name: ${SECRET_NAME}
+ type: Opaque
+ data:
+-  POSTGRES_USER: "$(echo ${POSTGRES_USER} | base64)"
+-  POSTGRES_PASSWORD: "$(echo ${POSTGRES_PASSWORD} | base64)"
+-  ADDITIONAL_USER: "$(echo ${ADDITIONAL_USER} | base64)"
+-  ADDITIONAL_PASSWORD: "$(echo ${ADDITIONAL_PASSWORD} | base64)"
++  POSTGRES_USER: "$(echo -n ${POSTGRES_USER} | base64)"
++  POSTGRES_PASSWORD: "$(echo -n ${POSTGRES_PASSWORD} | base64)"
++  ADDITIONAL_USER: "$(echo -n ${ADDITIONAL_USER} | base64)"
++  ADDITIONAL_PASSWORD: "$(echo -n ${ADDITIONAL_PASSWORD} | base64)"
+ EOF
+----
+
+* Workaround
+
+* Update password
++
+[source,console]
+----
+$ printf "ALTER ROLE dbuser1 WITH LOGIN PASSWORD '%s';" $(grep ADDITIONAL_PASSWORD .env | awk -F= '{print $2}') | psql -h $(shell kubectl get services postgres-service -o jsonpath='{.status.loadBalancer.ingress[*].ip}') -d fruits -U postgres
+ALTER ROLE
+----
