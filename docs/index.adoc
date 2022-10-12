@@ -54,6 +54,23 @@ local-path-storage   Active   31h
 metallb-system       Active   8m8s
 ----
 
+=== Nodes
+
+[source,console]
+----
+$ kubectl get nodes --show-labels
+NAME                   STATUS   ROLES           AGE   VERSION   LABELS
+kind-1-control-plane   Ready    control-plane   45d   v1.24.0   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=kind-1-control-plane,kubernetes.io/os=linux,node-role.kubernetes.io/control-plane=,node.kubernetes.io/exclude-from-external-load-balancers=
+----
+
+[source,shell]
+----
+kubectl get nodes kind-1-control-plane -o jsonpath="{.metadata.labels.kubernetes\.io/hostname}"
+----
+
+.References
+* https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/[Assign Pods to Nodes | Kubernetes^]
+
 === Deployments
 
 * Deploymentに関する情報を表示します:
@@ -279,6 +296,92 @@ Subsets:
     http  8080  TCP
 
 Events:  <none>
+----
+
+=== Storage
+
+==== emptyDir
+
+[source,yaml]
+.kind/ex-storage-empty-dir.yaml
+----
+include::kind/ex-storage-empty-dir.yaml[]
+----
+
+[source,shell]
+----
+kubectl apply -f kind/ex-storage-empty-dir.yaml
+----
+
+[source,console]
+----
+$ kubectl exec -it ex-storage-empty-dir -- df -h /cache
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sdb        251G   17G  222G   8% /cache
+----
+
+==== Persistent Volume
+
+[source,yaml]
+----
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: ${PV_NAME}
+spec:
+  capacity:
+    storage: 256Mi
+  volumeMode: Filesystem
+  accessModes:
+  - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Delete
+  storageClassName: ""
+  local:
+    path: ${MOUNT_POINT}
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+            - ${KUBE_HOSTNAME}
+----
+
+[source,yaml]
+.ex-storage-pv-local-pod.yaml
+----
+include::kind/ex-storage-pv-local/ex-storage-pv-local-pod.yaml[]
+----
+
+. Make directory (KIND only)
++
+[source,shell]
+----
+docker exec ${KUBE_NODENAME} mkdir -p ${MOUNT_POINT}
+----
+
+. Deploy
++
+[source,shell]
+----
+kubectl apply -f ${WORK_DIR}/ex-storage-pv-local.yaml
+kubectl apply -f ex-storage-pv-local-pod.yaml
+----
+
+. Delete
++
+[source,shell]
+----
+kubectl delete -f ex-storage-pv-local-pod.yaml
+kubectl delete persistentvolume ${PV_NAME}
+----
+
+. Delete directory (KIND only)
++
+[source,shell]
+----
+docker exec ${KUBE_NODENAME} rmdir ${MOUNT_POINT}
 ----
 
 === Troubleshooting
