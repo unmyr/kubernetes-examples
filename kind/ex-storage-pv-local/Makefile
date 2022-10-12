@@ -10,11 +10,11 @@ clean:
 	@echo -n "+ "
 	-kubectl delete -f ex-storage-pv-local-pod.yaml
 	@echo -n "+ "
-	./ex-storage-pv-local.sh delete
+	-./ex-storage-pv-local.sh delete
 
 show:
 	@echo -n "+ "
-	./ex-storage-pv-local.sh show
+	-./ex-storage-pv-local.sh show
 	@echo -n "+ "
 	-kubectl get pvc
 	@echo -n "+ "
