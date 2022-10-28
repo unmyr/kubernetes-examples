@@ -10,6 +10,7 @@
         "arping",
         "AUTHINFO",
         "autoconfigure",
+        "backoff",
         "bellsoft",
         "bfdprofiles",
         "bgpadvertisements",

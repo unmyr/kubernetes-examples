@@ -1,0 +1,21 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: test-job
+spec:
+  template:
+    spec:
+      containers:
+      - name: busybox-pod
+        image: busybox
+        command: ["cat", "/secret-ex1/fruits.txt"]
+        volumeMounts:
+        - mountPath: "/secret-ex1"
+          name: secret-ex1
+          readOnly: true
+      restartPolicy: Never
+      volumes:
+      - name: secret-ex1
+        secret:
+          secretName: secret-ex1
+  backoffLimit: 1
