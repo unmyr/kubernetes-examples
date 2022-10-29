@@ -42,14 +42,83 @@ CURRENT   NAME          CLUSTER       AUTHINFO      NAMESPACE
 
 === Secrets
 
+// include::../kind/secret-ex1/busybox.yaml[]
 [source,yaml]
 ----
-include::../kind/secret-ex1/busybox.yaml[]
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: test-job
+spec:
+  template:
+    spec:
+      containers:
+      - name: busybox-pod
+        image: busybox
+        command: ["cat", "/secret-ex1/fruits.txt"]
+        volumeMounts:
+        - mountPath: "/secret-ex1"
+          name: secret-ex1
+          readOnly: true
+      restartPolicy: Never
+      volumes:
+      - name: secret-ex1
+        secret:
+          secretName: secret-ex1
+  backoffLimit: 1
 ----
 
+// include::../kind/secret-ex1/secret-ex1.sh[]
 [source,shell]
 ----
-include::../kind/secret-ex1/secret-ex1.sh[]
+#!/bin/bash
+SCRIPT_PATH_IN=${BASH_SOURCE:-$0}
+SCRIPT_NAME=$(basename ${SCRIPT_PATH_IN} .sh)
+SCRIPT_DIR=$(dirname ${SCRIPT_PATH_IN})
+WORK_DIR=$(mktemp -d -p /tmp ${SCRIPT_NAME}.XXXX)
+trap 'rm -rf -- "${WORK_DIR}"' EXIT
+
+usage() {
+    cat 1>&2 <<EOF
+usage: $0 {create|delete|show}
+EOF
+}
+
+if [ $# -ne 1 ]; then
+    usage
+    exit 1
+fi
+CMD=$1
+NAMESPACE="secret-ex1"
+SECRET_NAME="secret-ex1"
+JOB_NAME="test-job"
+
+case $CMD in
+create)
+    (
+     set -x;
+     kubectl create ns ${NAMESPACE}
+     printf "apple\nbanana\ncherry\n" > ${WORK_DIR}/fruits.txt
+     kubectl create secret generic -n ${NAMESPACE} ${SECRET_NAME} --from-file=${WORK_DIR}/fruits.txt
+     kubectl apply -f ${SCRIPT_DIR}/busybox.yaml -n ${NAMESPACE}
+    )
+    ;;
+
+delete)
+    (set -x; kubectl delete -f ${SCRIPT_DIR}/busybox.yaml -n ${NAMESPACE})
+    (set -x; kubectl delete secret -n ${NAMESPACE} ${SECRET_NAME})
+    (set -x; kubectl delete ns ${NAMESPACE})
+    ;;
+
+show)
+    (set -x; kubectl get secret -n ${NAMESPACE} ${SECRET_NAME} -o jsonpath="{.data['fruits\.txt']}" | base64 -d)
+    (set -x; kubectl get pods -n ${NAMESPACE})
+    kubectl get pods --selector=job-name=${JOB_NAME} --output=jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' -n ${NAMESPACE} | while read POD_NAME; do
+        (set -x; kubectl logs -n ${NAMESPACE} ${POD_NAME})
+    done
+    ;;
+
+esac
 ----
 
 .Results
@@ -203,6 +272,13 @@ Pod IP        Container port
 10.244.0.13   8080
 ----
 
+** Accessing Pods through internal DNS with Pod IP
++
+[source,shell]
+----
+kubectl run -q -n default -it curl --image=curlimages/curl --rm --restart=Never --wait=true -- -s -L http://<pod-ip-address>.<service-name>.<namespace>.svc.cluster.local:8080/api/greet/John | python3 -m json.tool
+----
+
 * Add curl images
 +
 [source,shell]
@@ -268,12 +344,22 @@ kubectl get services go-hello-pod-metallb -o jsonpath='{.status.loadBalancer.ing
 kubectl get services go-hello-service -o jsonpath='{.spec.ports[0].port}'
 ----
 
+** Accessing Pods through internal DNS with Service Name
++
+[source,shell]
+----
+kubectl run -q -n default -it curl --image=curlimages/curl --rm --restart=Never --wait=true -- -s -L http://<service-name>.<namespace>.svc.cluster.local:3000/api/greet/John | python3 -m json.tool
+----
+
 * Delete service
 +
 [source,console]
 ----
 $ kubectl delete services my-service
 ----
+
+.Reference
+* https://kubernetes.io/ja/docs/concepts/services-networking/dns-pod-service/[ServiceとPodに対するDNS | kubernetes.io](link:https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/[en])
 
 === Endpoints
 
@@ -361,10 +447,24 @@ Events:  <none>
 
 ==== emptyDir
 
+// include::../kind/ex-storage-empty-dir.yaml[]
 [source,yaml]
 .kind/ex-storage-empty-dir.yaml
 ----
-include::../kind/ex-storage-empty-dir.yaml[]
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ex-storage-empty-dir
+spec:
+  containers:
+  - image: nginx:1.23
+    name: nginx-container
+    volumeMounts:
+    - mountPath: /cache
+      name: cache-volume
+  volumes:
+  - name: cache-volume
+    emptyDir: {}
 ----
 
 [source,shell]
@@ -407,10 +507,42 @@ spec:
             - ${KUBE_HOSTNAME}
 ----
 
+// include::../kind/ex-storage-pv-local/ex-storage-pv-local-pod.yaml[]
 [source,yaml]
 .ex-storage-pv-local-pod.yaml
 ----
-include::../kind/ex-storage-pv-local/ex-storage-pv-local-pod.yaml[]
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: local-claim
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 128Mi
+  storageClassName: ""
+  volumeName: "ex-storage-pv"
+  accessModes:
+    - ReadWriteOnce
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ex-storage-pv-local-pod
+spec:
+  nodeName: kind-1-control-plane
+  containers:
+  - image: nginx:1.23
+    name: nginx-container
+    imagePullPolicy: IfNotPresent
+    volumeMounts:
+    - mountPath: /cache
+      name: cache-volume
+  volumes:
+  - name: cache-volume
+    persistentVolumeClaim:
+      claimName: local-claim
 ----
 
 . Make directory (KIND only)
