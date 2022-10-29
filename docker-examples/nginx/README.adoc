@@ -1,0 +1,125 @@
+=== Manage container
+
+* Start a container
++
+[source,shell]
+----
+docker-compose up -d
+----
+
+* Test connection
++
+----
+curl localhost:8080
+----
+
+* Stop a container
++
+----
+docker-compose down
+----
+
+=== Networks
+
+* Get docker network
+[source,console]
+----
+$ docker network ls --filter name=nginx
+NETWORK ID     NAME            DRIVER    SCOPE
+2a92a4b4f536   nginx_default   bridge    local
+----
+
+* Get subnets
++
+[source,shell]
+----
+NETWORK_NAME="nginx_default"
+docker network inspect ${NETWORK_NAME} --format '{{json .IPAM.Config}}' | python3 -m json.tool
+----
++
+[source,json]
+.Results
+----
+[
+    {
+        "Subnet": "172.19.0.0/16",
+        "Gateway": "172.19.0.1"
+    }
+]
+----
+
+* Get container IP Address
++
+[source,shell]
+----
+CONTAINER_NAME="nginx"
+docker container inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ${CONTAINER_NAME}
+----
++
+[source,plaintext]
+.Results
+----
+172.19.0.2
+----
+
+* Show routing table
++
+[source,shell]
+----
+CONTAINER_NAME="nginx"
+ip route get $(docker container inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ${CONTAINER_NAME})
+----
++
+[source,plaintext]
+.Results
+----
+172.19.0.2 dev br-2a92a4b4f536 src 172.19.0.1 uid 1000
+    cache
+----
+
+* arp
++
+[source,shell]
+----
+arp $(docker container inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ${CONTAINER_NAME})
+----
++
+[source,plaintext]
+.Results
+----
+Address                  HWtype  HWaddress           Flags Mask            Iface
+172.19.0.2               ether   02:42:ac:13:00:02   C                     br-2a92a4b4f536
+----
+
+* neighbor cache
++
+[source,shell]
+----
+NETWORK_NAME="nginx_default"
+ip neigh show dev $(docker network inspect -f {{.Id}} ${NETWORK_NAME} | sed -e 's/^\(.\{12\}\).*/br-\1/')
+----
++
+[source,plaintext]
+.Results
+----
+172.19.0.2 lladdr 02:42:ac:13:00:02 STALE
+----
+
+* Get a network interface associated to docker network
++
+[source,shell]
+----
+NETWORK_NAME="nginx_default"
+ip addr show $(docker network inspect -f {{.Id}} ${NETWORK_NAME} | sed -e 's/^\(.\{12\}\).*/br-\1/')
+----
++
+[source,plaintext]
+.Results
+----
+18: br-2a92a4b4f536: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default
+    link/ether 02:42:72:17:69:10 brd ff:ff:ff:ff:ff:ff
+    inet 172.19.0.1/16 brd 172.19.255.255 scope global br-2a92a4b4f536
+       valid_lft forever preferred_lft forever
+    inet6 fe80::42:72ff:fe17:6910/64 scope link
+       valid_lft forever preferred_lft forever
+----
