@@ -19,10 +19,10 @@ include::header.adoc[]
 [source,shell]
 .~/.bashrc
 ----
-if [ -d $HOME/go/bin ]; then
-    export PATH="$HOME/go/bin:$PATH"
-fi
+test -d $HOME/go/bin && export PATH="$HOME/go/bin:$PATH"
 ----
+
+. Apply changes
 +
 [source,shell]
 ----
@@ -35,6 +35,8 @@ exec $SHELL -l
 ----
 go install sigs.k8s.io/kind@v0.17.0
 ----
+
+. Check installed version
 +
 [source,console]
 ----
@@ -54,8 +56,8 @@ $(go env GOPATH)/bin/kind create cluster --name kind-1
 $ kind get clusters
 kind-1
 $ kubectl cluster-info --context kind-kind-1
-Kubernetes control plane is running at https://127.0.0.1:46829
-CoreDNS is running at https://127.0.0.1:46829/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
+Kubernetes control plane is running at https://127.0.0.1:36897
+CoreDNS is running at https://127.0.0.1:36897/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
 
 To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.
 ----
@@ -282,7 +284,7 @@ $ docker container exec -it kind-1-control-plane curl http://10.244.0.7:8080/api
 {"message":"Hello, world!"}
 ----
 
-==== Deploy using `Pod`
+==== Deploy using Pod
 
 . Deploy apps to kind
 +
@@ -455,7 +457,7 @@ pod "greet-go-pod" deleted
 service "greet-go-service" deleted
 ----
 
-==== Deploy using `deployment`
+==== Deploy using Deployment
 
 . Deploy apps to kind
 +
