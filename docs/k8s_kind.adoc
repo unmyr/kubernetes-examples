@@ -33,13 +33,13 @@ exec $SHELL -l
 +
 [source,shell]
 ----
-go install sigs.k8s.io/kind@v0.14.0
+go install sigs.k8s.io/kind@v0.17.0
 ----
 +
 [source,console]
 ----
 $ $(go env GOPATH)/bin/kind version
-kind v0.14.0 go1.19 linux/amd64
+kind v0.17.0 go1.19 linux/amd64
 ----
 
 . Creating a Cluster
@@ -67,7 +67,8 @@ To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.
 [source,shell]
 ----
 curl -LO "https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
-sudo mv kubectl /usr/local/bin/
+sudo install -m 755 kubectl /usr/local/bin/kubectl
+rm kubectl
 ----
 
 ==== arp/arping (optional)
@@ -79,11 +80,13 @@ sudo apt install -y net-tools arping
 
 ==== Install MetalLB
 
+https://metallb.universe.tf/installation/[MetalLB > Installation]
+
 . Install MetalLB
 +
 [source,console]
 ----
-$ kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.4/config/manifests/metallb-native.yaml
+$ kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.7/config/manifests/metallb-native.yaml
 namespace/metallb-system created
 customresourcedefinition.apiextensions.k8s.io/addresspools.metallb.io created
 customresourcedefinition.apiextensions.k8s.io/bfdprofiles.metallb.io created
@@ -94,9 +97,6 @@ customresourcedefinition.apiextensions.k8s.io/ipaddresspools.metallb.io created
 customresourcedefinition.apiextensions.k8s.io/l2advertisements.metallb.io created
 serviceaccount/controller created
 serviceaccount/speaker created
-Warning: policy/v1beta1 PodSecurityPolicy is deprecated in v1.21+, unavailable in v1.25+
-podsecuritypolicy.policy/controller created
-podsecuritypolicy.policy/speaker created
 role.rbac.authorization.k8s.io/controller created
 role.rbac.authorization.k8s.io/pod-lister created
 clusterrole.rbac.authorization.k8s.io/metallb-system:controller created
@@ -116,11 +116,11 @@ validatingwebhookconfiguration.admissionregistration.k8s.io/metallb-webhook-conf
 ----
 $ kubectl get services -n metallb-system
 NAME              TYPE        CLUSTER-IP    EXTERNAL-IP   PORT(S)   AGE
-webhook-service   ClusterIP   10.96.15.70   <none>        443/TCP   16s
+webhook-service   ClusterIP   10.96.207.6   <none>        443/TCP   2m6s
 $ kubectl get pods -n metallb-system
 NAME                          READY   STATUS    RESTARTS   AGE
-controller-5bd9496b89-s55zl   1/1     Running   0          26s
-speaker-xxxxx                 1/1     Running   0          26s
+controller-84d6d4db45-pkq95   1/1     Running   0          2m25s
+speaker-xxxxx                 1/1     Running   0          2m24s
 ----
 
 . Get docker ip settings
@@ -153,7 +153,7 @@ $ docker network inspect kind --format '{{json .IPAM.Config}}' | python3 -m json
 +
 [source,console]
 ----
-$ $ kubectl apply -f metallb-IPAddressPool.expensive.yaml
+$ kubectl apply -f kind/metallb-IPAddressPool.yaml
 ipaddresspool.metallb.io/first-pool created
 l2advertisement.metallb.io/l2-ad created
 ----
@@ -164,28 +164,35 @@ l2advertisement.metallb.io/l2-ad created
 apiVersion: metallb.io/v1beta1
 kind: IPAddressPool
 metadata:
-  name: cheap
+  name: first-pool
   namespace: metallb-system
 spec:
   addresses:
-  - 172.16.0.240/28  # <1>
-  - 172.18.0.240/28
-  autoAssign: false
+  - 172.18.254.240/28  # <1>
+  autoAssign: true
 ---
 apiVersion: metallb.io/v1beta1
 kind: L2Advertisement
 metadata:
-  name: cheap
+  name: l2-ad
   namespace: metallb-system
 spec:
   ipAddressPools:
-  - cheap
+  - first-pool
 ----
 <1> DockerのIPを指定する
 
 .References
 * https://metallb.universe.tf/installation/[MetalLB, bare metal load-balancer for Kubernetes^]
 
+=== Upgrade
+
+. Upgrade KIND
++
+[source,shell]
+----
+go install sigs.k8s.io/kind@v0.17.0
+----
 
 === Uninstall
 
@@ -193,7 +200,7 @@ spec:
 +
 [source,shell]
 ----
-kubectl delete -f go-hello-pod.yaml
+kubectl delete -f greet-go-pod.yaml
 kubectl delete -f https://raw.githubusercontent.com/metallb/metallb/v0.13.4/config/manifests/metallb-native.yaml
 sudo arp -d 172.18.254.240
 ----
@@ -235,14 +242,14 @@ sudo service docker start
 +
 [source,shell]
 ----
-docker image build --tag go-hello-app:0.2 -f Dockerfile-MultiStage .
+docker image build --tag greet-go:0.1 -f Dockerfile-MultiStage .
 ----
 
 * Push image to kind
 +
 [source,shell]
 ----
-kind --name kind-1 load docker-image go-hello-app:0.2
+kind --name kind-1 load docker-image greet-go:0.1
 ----
 +
 [source,console,subs="quotes"]
@@ -252,26 +259,26 @@ IMAGE                  STATE     NAMES
 kindest/node:v1.24.0   running   kind-1-control-plane
 $ docker exec -it kind-1-control-plane crictl images
 IMAGE                                      TAG                  IMAGE ID            SIZE
-docker.io/kindest/kindnetd                 v20220510-4929dd75   6fb66cd78abfe       45.2MB
-docker.io/kindest/local-path-helper        v20220512-507ff70b   64623e9d887d3       2.86MB
+docker.io/kindest/kindnetd                 v20221004-44d545d1   d6e3e26021b60       25.8MB
+docker.io/kindest/local-path-helper        v20220607-9a4d8d2a   d2f902e939cc3       2.86MB
 docker.io/kindest/local-path-provisioner   v0.0.22-kind.0       4c1e997385b8f       17.4MB
-docker.io/library/go-hello-app             0.2                  bd535cee18ee0       12.5MB
-k8s.gcr.io/coredns/coredns                 v1.8.6               a4ca41631cc7a       13.6MB
-k8s.gcr.io/etcd                            3.5.3-0              aebe758cef4cd       102MB
-k8s.gcr.io/kube-apiserver                  v1.24.0              9ef4b1de3be49       77.3MB
-k8s.gcr.io/kube-controller-manager         v1.24.0              efa8a439d1460       65.6MB
-k8s.gcr.io/kube-proxy                      v1.24.0              6960c0e47829d       112MB
-k8s.gcr.io/kube-scheduler                  v1.24.0              41f5241e3396e       52.3MB
-k8s.gcr.io/pause                           3.6                  6270bb605e12e       302kB
-quay.io/metallb/controller                 v0.13.4              d875204170d63       25.6MB
-quay.io/metallb/speaker                    v0.13.4              5e3a0e9ab91a1       46.8MB
+docker.io/library/greet-go                 0.1                  abd18c430d5ec       12.5MB
+quay.io/metallb/controller                 v0.13.7              e73361dabfb86       25.6MB
+quay.io/metallb/speaker                    v0.13.7              738c5d221d601       46.9MB
+registry.k8s.io/coredns/coredns            v1.9.3               5185b96f0becf       14.8MB
+registry.k8s.io/etcd                       3.5.4-0              a8a176a5d5d69       102MB
+registry.k8s.io/kube-apiserver             v1.25.3              4bc1b1e750e34       76.5MB
+registry.k8s.io/kube-controller-manager    v1.25.3              580dca99efc3b       64.5MB
+registry.k8s.io/kube-proxy                 v1.25.3              86063cd68dfc9       63.3MB
+registry.k8s.io/kube-scheduler             v1.25.3              5225724a11400       51.9MB
+registry.k8s.io/pause                      3.7                  221177c6082a8       311kB
 ----
 
 . Tests
 +
 [source,console]
 ----
-$ docker container exec -it kind-1-control-plane curl http://10.244.0.7:8080/hello
+$ docker container exec -it kind-1-control-plane curl http://10.244.0.7:8080/api/greet/John
 {"message":"Hello, world!"}
 ----
 
@@ -280,18 +287,18 @@ $ docker container exec -it kind-1-control-plane curl http://10.244.0.7:8080/hel
 . Deploy apps to kind
 +
 [source,yaml]
-.go-hello-app.pod.yaml
+.kind/greet-go.pod.yaml
 ----
 apiVersion: v1
 kind: Pod
 metadata:
-  name: go-hello-pod
+  name: greet-go-pod
   labels:
-    app: go-hello-app
+    app: greet-go-app
 spec:
   containers:
-  - name: go-hello-app
-    image: go-hello-app:0.2
+  - name: greet-go
+    image: greet-go:0.1
     imagePullPolicy: Never
     ports:
     - containerPort: 8080
@@ -299,11 +306,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: go-hello-service
+  name: greet-go-service
 spec:
   type: LoadBalancer
   selector:
-    app: go-hello-pod
+    app: greet-go-app
   ports:
     - name: http
       port: 3000
@@ -313,164 +320,35 @@ spec:
 +
 [source,console]
 ----
-$ kubectl apply -f go-hello-app.pod.yaml
-pod/go-hello-pod created
-service/go-hello-service created
+$ kubectl apply -f kind/greet-go.pod.yaml
+pod/greet-go-pod created
+service/greet-go-service created
 ----
 
 . Check results
 +
 [source,console]
 ----
-$ kubectl get services
+$ kubectl get services greet-go-service
 NAME               TYPE           CLUSTER-IP     EXTERNAL-IP      PORT(S)          AGE
-go-hello-service   LoadBalancer   10.96.207.69   172.18.254.240   3000:30702/TCP   14s
-kubernetes         ClusterIP      10.96.0.1      <none>           443/TCP          7h3m
+greet-go-service   LoadBalancer   10.96.229.58   172.18.254.240   3000:30466/TCP   35s
 ----
 
 ** Selectorの設定が正しい場合は次のように Service に Endpoint が自動的に作成される
 +
 [source,console]
 ----
-$ kubectl get endpoints go-hello-service
-NAME               ENDPOINTS                           AGE
-go-hello-service   10.244.0.10:8080,10.244.0.11:8080   5m2s
+$ kubectl get endpoints greet-go-service
+NAME               ENDPOINTS          AGE
+greet-go-service   10.244.0.31:8080   56s
 ----
 
 ** Service に対する Endpoint が作成済みであれば arp の HWaddress の項目に MACアドレスが入る
 +
 [source,console]
 ----
-$ arp 172.18.254.240
+$ arp $(kubectl get services greet-go-service -o jsonpath='{.status.loadBalancer.ingress[*].ip}')
 Address                  HWtype  HWaddress           Flags Mask            Iface
-172.18.254.240           ether   02:42:ac:12:00:02   C
-----
-
-. Send test request
-
-** Get response of curl through POD IP address
-+
-[source,console]
-----
-$ docker container exec -it kind-1-control-plane curl http://$(kubectl get pod go-hello-pod -o jsonpath='{.status.podIP}'):8080/hello; echo
-{"message":"Hello, world!"}
-----
-
-** Forward a local port to a port on the Pod
-+
-[source,console]
-----
-$ kubectl get pods
-NAME           READY   STATUS    RESTARTS   AGE
-go-hello-pod   1/1     Running   0          2m8s
-----
-+
-[source,console]
-----
-$ kubectl port-forward go-hello-pod 3000:8080
-Forwarding from 127.0.0.1:3000 -> 8080
-Forwarding from [::1]:3000 -> 8080
-...
-----
-+
-Open a new terminal and run the following command:
-+
-[source,console]
-----
-$ curl http://localhost:3000/hello \
---header "Content-Type: application/json" --request "GET"
-{"message":"Hello, world!"}
-----
-
-** Using External IP
-+
-[source,console]
-----
-$ kubectl get services
-NAME               TYPE           CLUSTER-IP     EXTERNAL-IP      PORT(S)          AGE
-go-hello-service   LoadBalancer   10.96.207.69   172.18.254.240   3000:30702/TCP   23m
-kubernetes         ClusterIP      10.96.0.1      <none>           443/TCP          7h26m
-----
-+
-----
-$ curl http://172.18.254.240:3000/hello \
-> --header "Content-Type: application/json" --request "GET"; echo
-{"message":"Hello, world!"}
-$ curl http://$(kubectl get services go-hello-service -o jsonpath='{.status.loadBalancer.ingress[*].ip}'):$(kubectl get services go-hello-service -o jsonpath='{.spec.ports[0].port}')/hello --header "Content-Type: application/json"; echo
-{"message":"Hello, world!"}
-----
-
-==== Deploy using `deployment`
-
-. Deploy apps to kind
-+
-[source,yaml]
-.go-hello-app.deployment.yaml
-----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: go-hello-app
-spec:
-  selector:
-    matchLabels:
-      app: go-hello-app
-  replicas: 2
-  template:
-    metadata:
-      labels:
-        app: go-hello-app
-    spec:
-      containers:
-      - name: go-hello-app
-        image: go-hello-app:0.2
-        imagePullPolicy: Never
-        ports:
-        - containerPort: 8080
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: go-hello-service
-spec:
-  type: LoadBalancer
-  selector:
-    app: go-hello-app
-  ports:
-    - name: http
-      port: 3000
-      targetPort: 8080
-      protocol: TCP
-----
-+
-[source,console]
-----
-$ kubectl apply -f go-hello-app.deployment.yaml
-deployment.apps/go-hello-app created
-service/go-hello-service created
-----
-+
-[source,console]
-----
-$ kubectl get deployments
-NAME           READY   UP-TO-DATE   AVAILABLE   AGE
-go-hello-app   0/2     0            0           0s
-$ kubectl get pods -l app=go-hello-app
-NAME                            READY   STATUS              RESTARTS   AGE
-go-hello-app-6cf496f84c-aaaaa   0/1     ContainerCreating   0          0s
-go-hello-app-6cf496f84c-bbbbb   0/1     ContainerCreating   0          0s
-$ kubectl get services
-NAME               TYPE           CLUSTER-IP      EXTERNAL-IP      PORT(S)          AGE
-go-hello-service   LoadBalancer   10.96.114.251   172.18.254.240   3000:30989/TCP   0s
-kubernetes         ClusterIP      10.96.0.1       <none>           443/TCP          7h34m
-$ kubectl get endpoints
-NAME               ENDPOINTS         AGE
-go-hello-service   <none>            0s
-kubernetes         172.18.0.2:6443   7h34m
-$ arp
-Address                  HWtype  HWaddress           Flags Mask            Iface
-172.18.0.2               ether   02:42:ac:12:00:02   C                     br-cb34625844b6
-DESKTOP-E39V4F4          ether   00:15:5d:31:24:02   C                     eth0
 172.18.254.240           ether   02:42:ac:12:00:02   C                     br-cb34625844b6
 ----
 
@@ -480,38 +358,244 @@ DESKTOP-E39V4F4          ether   00:15:5d:31:24:02   C                     eth0
 +
 [source,console]
 ----
-$ kubectl get pods -l app=go-hello-app -o custom-columns="Pod IP":.status.podIP,"Container port":.spec.containers[0].ports[].containerPort
+$ docker container exec -it kind-1-control-plane curl http://$(kubectl get pod greet-go-pod -o jsonpath='{.status.podIP}'):8080/api/greet/John | python3 -m json.tool
+{
+    "message": "Hello, John!"
+}
+----
+
+** Accessing Pods through internal DNS with Pod IP
++
+[source,console]
+----
+$ kubectl get pods -l app=greet-go-app -o custom-columns="Pod IP":.status.podIP,"Container port":.spec.containers[0].ports[].containerPort
 Pod IP        Container port
-10.244.0.12   8080
-10.244.0.13   8080
+10.244.0.31   8080
+$ kubectl run -q -n default -it curl --image=curlimages/curl --rm --restart=Never --wait=true -- -s -L http://10-244-0-31.greet-go-service.default.svc.cluster.local:8080/api/greet/John | python3 -m json.tool
+{
+    "message": "Hello, John!"
+}
+----
+
+** Accessing Pods through internal DNS with Service Name
++
+[source,console]
+----
+$ kubectl get services greet-go-service
+NAME               TYPE           CLUSTER-IP     EXTERNAL-IP      PORT(S)          AGE
+greet-go-service   LoadBalancer   10.96.229.58   172.18.254.240   3000:30466/TCP   11m
+$ docker container exec -it kind-1-control-plane curl http://greet-go-service.default.svc.cluster.local:3000/api/greet/John
+curl: (6) Could not resolve host: greet-go-service.default.svc.cluster.local
+$ kubectl run -q -n default -it curl --image=curlimages/curl --rm --restart=Never --wait=true -- -s -L http://greet-go-service.default.svc.cluster.local:3000/api/greet/John | python3 -m json.tool
+{
+    "message": "Hello, John!"
+}
+----
+
+** Forward a local port to a port on the Pod
++
+[source,console]
+----
+$ kubectl get pods
+NAME           READY   STATUS    RESTARTS   AGE
+greet-go-pod   1/1     Running   0          4m52s
 ----
 +
 [source,console]
 ----
-$ kubectl get pods -l app=go-hello-app -o name | sed -e 's@pod/@@' | while read POD_NAME;do (set -x; POD_IP=$(kubectl get pod ${POD_NAME} -o jsonpath='{.status.podIP}'); docker container exec kind-1-control-plane curl -s http://${POD_IP}:8080/hello ); echo; done
-++ kubectl get pod go-hello-app-6cf496f84c-aaaaa -o 'jsonpath={.status.podIP}'
+$ kubectl port-forward greet-go-pod 3000:8080
+Forwarding from 127.0.0.1:3000 -> 8080
+Forwarding from [::1]:3000 -> 8080
+...
+----
++
+Open a new terminal and run the following command:
++
+[source,console]
+----
+$ curl -s http://localhost:3000/api/greet/John \
+> --header "Content-Type: application/json" --request "GET" | python3 -m json.tool
+{
+    "message": "Hello, John!"
+}
+----
+
+** Using External IP
++
+[source,console]
+----
+$ kubectl get services greet-go-service
+NAME               TYPE           CLUSTER-IP     EXTERNAL-IP      PORT(S)          AGE
+greet-go-service   LoadBalancer   10.96.229.58   172.18.254.240   3000:30466/TCP   6m33s
+----
++
+----
+$ curl -s http://172.18.254.240:3000/api/greet/John \
+--header "Content-Type: application/json" --request "GET" | python3 -m json.tool
+{
+    "message": "Hello, John!"
+}
+$ curl -s http://$(kubectl get services greet-go-service -o jsonpath='{.status.loadBalancer.ingress[*].ip}'):$(kubectl get services greet-go-service -o jsonpath='{.spec.ports[0].port}')/api/greet/John --header "Content-Type: application/json" | python3 -m json.tool
+{
+    "message": "Hello, John!"
+}
+----
+
+. Delete deployments
++
+[source,shell]
+----
+kubectl delete -f kind/greet-go.pod.yaml
+----
++
+[source,console]
+----
+$ kubectl delete -f kind/greet-go.pod.yaml
+pod "greet-go-pod" deleted
+service "greet-go-service" deleted
+----
+
+==== Deploy using `deployment`
+
+. Deploy apps to kind
++
+[source,yaml]
+.kind/greet-go.deployment.yaml
+----
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: greet-go-app
+spec:
+  selector:
+    matchLabels:
+      app: greet-go-app
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: greet-go-app
+    spec:
+      containers:
+      - name: greet-go
+        image: greet-go:0.1
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: greet-go-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: greet-go-app
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 8080
+      protocol: TCP
+----
++
+[source,console]
+----
+$ kubectl apply -f kind/greet-go.deployment.yaml
+deployment.apps/greet-go-app created
+service/greet-go-service created
+----
++
+[source,console]
+----
+$ kubectl get deployments
+NAME           READY   UP-TO-DATE   AVAILABLE   AGE
+greet-go-app   2/2     2            2           10m
+$ kubectl get pods -l app=greet-go-app
+NAME                            READY   STATUS    RESTARTS   AGE
+greet-go-app-78cc5cfdd8-aaaaa   1/1     Running   0          10m
+greet-go-app-78cc5cfdd8-bbbbb   1/1     Running   0          10m
+$ kubectl get services
+NAME               TYPE           CLUSTER-IP    EXTERNAL-IP      PORT(S)          AGE
+greet-go-service   LoadBalancer   10.96.94.74   172.18.254.240   3000:30485/TCP   11m
+kubernetes         ClusterIP      10.96.0.1     <none>           443/TCP          59m
+$ kubectl get endpoints
+NAME               ENDPOINTS                         AGE
+greet-go-service   10.244.0.6:8080,10.244.0.7:8080   11m
+kubernetes         172.18.0.2:6443                   59m
+$ arp
+Address                  HWtype  HWaddress           Flags Mask            Iface
+172.18.0.2               ether   02:42:ac:12:00:02   C                     br-cb34625844b6
+DESKTOP-E39V4F4          ether   00:15:5d:ba:d9:2c   C                     eth0
+----
+
+. Send test request
+
+** Get response of curl through POD IP address
++
+[source,console]
+----
+$ kubectl get pods -l app=greet-go-app -o custom-columns="Pod IP":
+.status.podIP,"Container port":.spec.containers[0].ports[].containerPort
+Pod IP       Container port
+10.244.0.7   8080
+10.244.0.6   8080
+----
++
+[source,console]
+----
+$ kubectl get pods -l app=greet-go-app -o name | sed -e 's@pod/@@' | while read POD_NAME;do (set -x; POD_IP=$(kubectl get pod ${POD_NAME} -o jsonpath='{.status.podIP}'); docker container exec kind-1-control-plane curl -s http://${POD_IP}:8080/api/greet/John ); echo; done
+++ kubectl get pod greet-go-app-6cf496f84c-aaaaa -o 'jsonpath={.status.podIP}'
 + POD_IP=10.244.0.12
-+ docker container exec kind-1-control-plane curl -s http://10.244.0.12:8080/hello
++ docker container exec kind-1-control-plane curl -s http://10.244.0.12:8080/api/greet/John
 {"message":"Hello, world!"}
-++ kubectl get pod go-hello-app-6cf496f84c-bbbbb -o 'jsonpath={.status.podIP}'
+++ kubectl get pod greet-go-app-6cf496f84c-bbbbb -o 'jsonpath={.status.podIP}'
 + POD_IP=10.244.0.13
-+ docker container exec kind-1-control-plane curl -s http://10.244.0.13:8080/hello
++ docker container exec kind-1-control-plane curl -s http://10.244.0.13:8080/api/greet/John
 {"message":"Hello, world!"}
 ----
 
-* Forward a local port to a port on the Pod
+** Accessing Pods through internal DNS with Pod IP
 +
 [source,console]
 ----
-$ kubectl get pods -l app=go-hello-app
+$ kubectl run -q -n default -it curl --image=curlimages/curl --rm --restart=Never --wait=true -- -s -L http://10-244-0-6.greet-go-service.default.svc.cluster.local:8080/api/greet/John | python3 -m json.tool
+{
+    "message": "Hello, John!"
+}
+$ kubectl run -q -n default -it curl --image=curlimages/curl --rm --restart=Never --wait=true -- -s -L http://10-244-0-7.greet-go-service.default.svc.cluster.local:8080/api/greet/John | python3 -m json.tool
+{
+    "message": "Hello, John!"
+}
+----
+
+** Accessing Pods through internal DNS with Service Name
++
+[source,console]
+----
+$ kubectl get services greet-go-service
+NAME               TYPE           CLUSTER-IP    EXTERNAL-IP      PORT(S)          AGE
+greet-go-service   LoadBalancer   10.96.94.74   172.18.254.240   3000:30485/TCP   65m
+$ docker container exec -it kind-1-control-plane curl http://greet-go-service.default.svc.cluster.local:3000/api/greet/John
+curl: (6) Could not resolve host: greet-go-service.default.svc.cluster.local
+$ kubectl run -q -n default -it curl --image=curlimages/curl --rm --restart=Never --wait=true -- -s -L http://greet-go-service.default.svc.cluster.local:3000/api/greet/John | python3 -m json.tool
+{
+    "message": "Hello, John!"
+}
+----
+
+** Forward a local port to a port on the Pod
++
+[source,console]
+----
+$ kubectl get pods -l app=greet-go-app
 NAME                            READY   STATUS    RESTARTS   AGE
-go-hello-app-6cf496f84c-aaaaa   1/1     Running   0          32m
-go-hello-app-6cf496f84c-bbbbb   1/1     Running   0          32m
+greet-go-app-6cf496f84c-aaaaa   1/1     Running   0          32m
+greet-go-app-6cf496f84c-bbbbb   1/1     Running   0          32m
 ----
 +
 [source,console]
 ----
-$ kubectl port-forward go-hello-app-6cf496f84c-aaaaa 3000:8080
+$ kubectl port-forward greet-go-app-6cf496f84c-aaaaa 3000:8080
 Forwarding from 127.0.0.1:3000 -> 8080
 Forwarding from [::1]:3000 -> 8080
 Handling connection for 3000
@@ -522,16 +606,16 @@ Open a new terminal and run the following command:
 +
 [source,console]
 ----
-$ curl -s http://localhost:3000/hello \
+$ curl -s http://localhost:3000/api/greet/John \
 --header "Content-Type: application/json" --request "GET" | python3 -m json.tool
 {
-    "message": "Hello, world!"
+    "message": "Hello, John!"
 }
 ----
 +
 [source,console]
 ----
-$ kubectl port-forward go-hello-app-6cf496f84c-bbbbb 3000:8080
+$ kubectl port-forward greet-go-app-6cf496f84c-bbbbb 3000:8080
 Forwarding from 127.0.0.1:3000 -> 8080
 Forwarding from [::1]:3000 -> 8080
 ...
@@ -541,10 +625,10 @@ Open a new terminal and run the following command:
 +
 [source,console]
 ----
-$ curl -s http://localhost:3000/hello \
+$ curl -s http://localhost:3000/api/greet/John \
 --header "Content-Type: application/json" --request "GET" | python3 -m json.tool
 {
-    "message": "Hello, world!"
+    "message": "Hello, John!"
 }
 ----
 
@@ -553,21 +637,35 @@ $ curl -s http://localhost:3000/hello \
 [source,console]
 ----
 $ kubectl get services
-NAME               TYPE           CLUSTER-IP      EXTERNAL-IP      PORT(S)          AGE
-go-hello-service   LoadBalancer   10.96.114.251   172.18.254.240   3000:30989/TCP   38m
-kubernetes         ClusterIP      10.96.0.1       <none>           443/TCP          8h
+NAME               TYPE           CLUSTER-IP    EXTERNAL-IP      PORT(S)          AGE
+greet-go-service   LoadBalancer   10.96.94.74   172.18.254.240   3000:30485/TCP   17m
+kubernetes         ClusterIP      10.96.0.1     <none>           443/TCP          65m
 ----
 +
 ----
-$ curl -s http://172.18.254.240:3000/hello \
+$ curl -s http://172.18.254.240:3000/api/greet/John \
 --header "Content-Type: application/json" --request "GET" | python3 -m json.tool
 {
-    "message": "Hello, world!"
+    "message": "Hello, John!"
 }
-$ curl -s http://$(kubectl get services go-hello-service -o jsonpath='{.status.loadBalancer.ingress[*].ip}'):$(kubectl get services go-hello-service -o jsonpath='{.spec.ports[0].port}')/hello --header "Content-Type: application/json" | python3 -m json.tool
+$ curl -s http://$(kubectl get services greet-go-service -o jsonpath='{.status.loadBalancer.ingress[*].ip}'):$(kubectl get services greet-go-service -o jsonpath='{.spec.ports[0].port}')/api/greet/John --header "Content-Type: application/json" | python3 -m json.tool
 {
-    "message": "Hello, world!"
+    "message": "Hello, John!"
 }
+----
+
+. Delete deployments
++
+[source,shell]
+----
+kubectl delete -f kind/greet-go.deployment.yaml
+----
++
+[source,console]
+----
+$ kubectl delete -f kind/greet-go.deployment.yaml
+deployment.apps "greet-go-app" deleted
+service "greet-go-service" deleted
 ----
 
 ==== Deploy using deployment with loadBalancerIP
@@ -584,17 +682,17 @@ kubernetes   ClusterIP   10.96.0.1    <none>        443/TCP   15m
 . Deploy a app
 +
 [source,yaml]
-.go-hello-app.loadBalancerIP.yaml
+.greet-go-app.loadBalancerIP.yaml
 ----
 apiVersion: v1
 kind: Service
 metadata:
-  name: go-hello-app-metallb
+  name: greet-go-app-metallb
 spec:
   type: LoadBalancer
   loadBalancerIP: 172.18.0.240 # <1>
   selector:
-    app: go-hello-app
+    app: greet-go-app
   ports:
     - name: http
       port: 8080
@@ -606,11 +704,11 @@ spec:
 +
 [source,console]
 ----
-$ kubectl apply -f go-hello-pod.service.yaml
-service/go-hello-pod-metallb created
+$ kubectl apply -f greet-go-pod.service.yaml
+service/greet-go-pod-metallb created
 $ kubectl get services
 NAME                   TYPE           CLUSTER-IP     EXTERNAL-IP      PORT(S)          AGE
-go-hello-pod-metallb   LoadBalancer   10.96.78.233   172.18.255.240   8080:30213/TCP   3m4s
+greet-go-pod-metallb   LoadBalancer   10.96.78.233   172.18.255.240   8080:30213/TCP   3m4s
 kubernetes             ClusterIP      10.96.0.1      <none>           443/TCP          21m
 ----
 
@@ -618,7 +716,7 @@ kubernetes             ClusterIP      10.96.0.1      <none>           443/TCP   
 +
 [source,console]
 ----
-$ curl -s http://172.18.0.240:8080/hello --header "Content-Type: application/json"
+$ curl -s http://172.18.0.240:8080/api/greet/John --header "Content-Type: application/json"
 {"message":"Hello, world!"}
 ----
 
