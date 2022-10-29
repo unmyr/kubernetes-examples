@@ -120,7 +120,7 @@ webhook-service   ClusterIP   10.96.15.70   <none>        443/TCP   16s
 $ kubectl get pods -n metallb-system
 NAME                          READY   STATUS    RESTARTS   AGE
 controller-5bd9496b89-s55zl   1/1     Running   0          26s
-speaker-jlnrz                 1/1     Running   0          26s
+speaker-xxxxx                 1/1     Running   0          26s
 ----
 
 . Get docker ip settings
@@ -457,8 +457,8 @@ NAME           READY   UP-TO-DATE   AVAILABLE   AGE
 go-hello-app   0/2     0            0           0s
 $ kubectl get pods -l app=go-hello-app
 NAME                            READY   STATUS              RESTARTS   AGE
-go-hello-app-6cf496f84c-lcgvn   0/1     ContainerCreating   0          0s
-go-hello-app-6cf496f84c-rwcbw   0/1     ContainerCreating   0          0s
+go-hello-app-6cf496f84c-aaaaa   0/1     ContainerCreating   0          0s
+go-hello-app-6cf496f84c-bbbbb   0/1     ContainerCreating   0          0s
 $ kubectl get services
 NAME               TYPE           CLUSTER-IP      EXTERNAL-IP      PORT(S)          AGE
 go-hello-service   LoadBalancer   10.96.114.251   172.18.254.240   3000:30989/TCP   0s
@@ -489,11 +489,11 @@ Pod IP        Container port
 [source,console]
 ----
 $ kubectl get pods -l app=go-hello-app -o name | sed -e 's@pod/@@' | while read POD_NAME;do (set -x; POD_IP=$(kubectl get pod ${POD_NAME} -o jsonpath='{.status.podIP}'); docker container exec kind-1-control-plane curl -s http://${POD_IP}:8080/hello ); echo; done
-++ kubectl get pod go-hello-app-6cf496f84c-lcgvn -o 'jsonpath={.status.podIP}'
+++ kubectl get pod go-hello-app-6cf496f84c-aaaaa -o 'jsonpath={.status.podIP}'
 + POD_IP=10.244.0.12
 + docker container exec kind-1-control-plane curl -s http://10.244.0.12:8080/hello
 {"message":"Hello, world!"}
-++ kubectl get pod go-hello-app-6cf496f84c-rwcbw -o 'jsonpath={.status.podIP}'
+++ kubectl get pod go-hello-app-6cf496f84c-bbbbb -o 'jsonpath={.status.podIP}'
 + POD_IP=10.244.0.13
 + docker container exec kind-1-control-plane curl -s http://10.244.0.13:8080/hello
 {"message":"Hello, world!"}
@@ -505,13 +505,13 @@ $ kubectl get pods -l app=go-hello-app -o name | sed -e 's@pod/@@' | while read 
 ----
 $ kubectl get pods -l app=go-hello-app
 NAME                            READY   STATUS    RESTARTS   AGE
-go-hello-app-6cf496f84c-lcgvn   1/1     Running   0          32m
-go-hello-app-6cf496f84c-rwcbw   1/1     Running   0          32m
+go-hello-app-6cf496f84c-aaaaa   1/1     Running   0          32m
+go-hello-app-6cf496f84c-bbbbb   1/1     Running   0          32m
 ----
 +
 [source,console]
 ----
-$ kubectl port-forward go-hello-app-6cf496f84c-lcgvn 3000:8080
+$ kubectl port-forward go-hello-app-6cf496f84c-aaaaa 3000:8080
 Forwarding from 127.0.0.1:3000 -> 8080
 Forwarding from [::1]:3000 -> 8080
 Handling connection for 3000
@@ -531,7 +531,7 @@ $ curl -s http://localhost:3000/hello \
 +
 [source,console]
 ----
-$ kubectl port-forward go-hello-app-6cf496f84c-rwcbw 3000:8080
+$ kubectl port-forward go-hello-app-6cf496f84c-bbbbb 3000:8080
 Forwarding from 127.0.0.1:3000 -> 8080
 Forwarding from [::1]:3000 -> 8080
 ...
