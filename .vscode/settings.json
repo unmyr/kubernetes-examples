@@ -73,6 +73,7 @@
         "NOARP",
         "NODELAY",
         "nodename",
+        "nodeport",
         "noninteractive",
         "noqueue",
         "noschema",

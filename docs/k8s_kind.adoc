@@ -45,6 +45,8 @@ kind v0.17.0 go1.19 linux/amd64
 ----
 
 . Creating a Cluster
+
+** Install by default settings
 +
 [source,shell]
 ----
@@ -52,14 +54,85 @@ $(go env GOPATH)/bin/kind create cluster --name kind-1
 ----
 +
 [source,console]
+.kind get clusters
 ----
 $ kind get clusters
 kind-1
+----
++
+[source,console]
+.kubectl cluster-info --context kind-kind-1
+----
 $ kubectl cluster-info --context kind-kind-1
 Kubernetes control plane is running at https://127.0.0.1:36897
 CoreDNS is running at https://127.0.0.1:36897/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
 
 To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.
+----
+
+** Using node port +
+https://kind.sigs.k8s.io/docs/user/using-wsl2/#accessing-a-kubernetes-service-running-in-wsl2[Accessing a Kubernetes Service running in WSL2^]
++
+[source,yaml]
+.kind/kind-1-cluster.yaml
+----
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: kind-1-cluster
+nodes:
+- role: control-plane
+  extraPortMappings:
+  - containerPort: 30000
+    hostPort: 30000
+    protocol: TCP
+----
++
+[source,shell]
+.Create KIND cluster
+----
+kind create cluster --config=kind/kind-1-cluster.yaml
+----
++
+[source,console]
+.kind create cluster --config=kind/kind-1-cluster.yaml
+----
+$ kind create cluster --config=kind/kind-1-cluster.yaml
+Creating cluster "kind-1-cluster" ...
+ ✓ Ensuring node image (kindest/node:v1.25.3) 🖼
+ ✓ Preparing nodes 📦
+ ✓ Writing configuration 📜
+ ✓ Starting control-plane 🕹️
+ ✓ Installing CNI 🔌
+ ✓ Installing StorageClass 💾
+Set kubectl context to "kind-kind-1-cluster"
+You can now use your cluster with:
+
+kubectl cluster-info --context kind-kind-1-cluster
+
+Have a question, bug, or feature request? Let us know! https://kind.sigs.k8s.io/#community 🙂
+----
++
+[source,console]
+.kubectl create deployment nginx --image=nginx --port=80
+----
+$ kubectl create deployment nginx --image=nginx --port=80
+deployment.apps/nginx created
+guest@DESKTOP-E39V4F4:~/tmp_github/kubernetes-examples$ kubectl create service nodeport nginx --tcp=80:80 --node-port=30000
+service/nginx created
+----
++
+[source,console]
+.curl localhost:30000
+----
+$ curl localhost:30000
+...
+----
++
+[source,console]
+.kubectl delete deployment nginx
+----
+$ kubectl delete deployment nginx
+deployment.apps "nginx" deleted
 ----
 
 ==== Install kubectl
