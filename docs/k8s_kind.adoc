@@ -10,9 +10,9 @@ include::header.adoc[]
 * https://kind.sigs.k8s.io/[KIND^]
 * https://github.com/kubernetes-sigs/kind[kubernetes-sigs/kind: Kubernetes IN Docker - local clusters for testing Kubernetes^]
 
-=== Install
+== Install
 
-==== Install KIND
+=== Install KIND
 
 . Set `go` bin path
 +
@@ -44,9 +44,11 @@ $ $(go env GOPATH)/bin/kind version
 kind v0.17.0 go1.19 linux/amd64
 ----
 
-. Creating a Cluster
+=== Creating a Cluster
 
-** Install by default settings
+==== Install by default settings
+
+. Create Cluster
 +
 [source,shell]
 ----
@@ -70,15 +72,18 @@ CoreDNS is running at https://127.0.0.1:36897/api/v1/namespaces/kube-system/serv
 To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.
 ----
 
-** Using node port +
+==== Using node port
+
 https://kind.sigs.k8s.io/docs/user/using-wsl2/#accessing-a-kubernetes-service-running-in-wsl2[Accessing a Kubernetes Service running in WSL2^]
+
+. Create KIND Cluster using YAML
 +
 [source,yaml]
-.kind/kind-1-cluster.yaml
+.kind/kind-1.cluster.yaml
 ----
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
-name: kind-1-cluster
+name: kind-1
 nodes:
 - role: control-plane
   extraPortMappings:
@@ -90,36 +95,75 @@ nodes:
 [source,shell]
 .Create KIND cluster
 ----
-kind create cluster --config=kind/kind-1-cluster.yaml
+kind create cluster --config=kind/kind-1.cluster.yaml
 ----
 +
 [source,console]
-.kind create cluster --config=kind/kind-1-cluster.yaml
+.kind create cluster --config=kind/kind-1.cluster.yaml
 ----
-$ kind create cluster --config=kind/kind-1-cluster.yaml
-Creating cluster "kind-1-cluster" ...
+$ $(go env GOPATH)/bin/kind create cluster --name kind-1
+Creating cluster "kind-1" ...
  ✓ Ensuring node image (kindest/node:v1.25.3) 🖼
  ✓ Preparing nodes 📦
  ✓ Writing configuration 📜
  ✓ Starting control-plane 🕹️
  ✓ Installing CNI 🔌
  ✓ Installing StorageClass 💾
-Set kubectl context to "kind-kind-1-cluster"
+Set kubectl context to "kind-kind-1"
 You can now use your cluster with:
 
-kubectl cluster-info --context kind-kind-1-cluster
+kubectl cluster-info --context kind-kind-1
 
-Have a question, bug, or feature request? Let us know! https://kind.sigs.k8s.io/#community 🙂
+Have a nice day! 👋
 ----
+. Show settings
++
+[source,console]
+.WSL: ss -napt
+----
+$ ss -napt
+State       Recv-Q   Send-Q     Local Address:Port      Peer Address:Port   Process
+...
+LISTEN      0        4096             0.0.0.0:30000          0.0.0.0:*
+...
+----
++
+[source,console]
+.Windows HOST: netstat -a
+----
+PS> netstat -a
+
+アクティブな接続
+
+  プロトコル  ローカル アドレス      外部アドレス           状態
+  ...
+  TCP         127.0.0.1:30000        DESKTOP-E39V4F4:0      LISTENING
+  ...
+----
++
+[source,console]
+.Windows HOST: Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort 30000
+----
+PS> Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort 30000
+
+LocalAddress                        LocalPort RemoteAddress                       RemotePort State       AppliedSetting
+------------                        --------- -------------                       ---------- -----       --------------
+127.0.0.1                           30000     0.0.0.0                             0          Listen
+----
+
+.Testing
+. Create deployment
 +
 [source,console]
 .kubectl create deployment nginx --image=nginx --port=80
 ----
 $ kubectl create deployment nginx --image=nginx --port=80
 deployment.apps/nginx created
-guest@DESKTOP-E39V4F4:~/tmp_github/kubernetes-examples$ kubectl create service nodeport nginx --tcp=80:80 --node-port=30000
+$ kubectl create service nodeport nginx --tcp=80:80 --node-port=30000
 service/nginx created
 ----
+
+. curl
 +
 [source,console]
 .curl localhost:30000
@@ -127,6 +171,8 @@ service/nginx created
 $ curl localhost:30000
 ...
 ----
+
+. Delete deployment
 +
 [source,console]
 .kubectl delete deployment nginx
@@ -135,7 +181,7 @@ $ kubectl delete deployment nginx
 deployment.apps "nginx" deleted
 ----
 
-==== Install kubectl
+=== Install kubectl
 
 . Install kubectl
 +
@@ -146,14 +192,14 @@ sudo install -m 755 kubectl /usr/local/bin/kubectl
 rm kubectl
 ----
 
-==== arp/arping (optional)
+=== arp/arping (optional)
 
 [source,shell]
 ----
 sudo apt install -y net-tools arping
 ----
 
-==== Install MetalLB
+=== Install MetalLB
 
 https://metallb.universe.tf/installation/[MetalLB > Installation]
 
@@ -260,7 +306,7 @@ spec:
 .References
 * https://metallb.universe.tf/installation/[MetalLB, bare metal load-balancer for Kubernetes^]
 
-=== Upgrade
+== Upgrade
 
 . Upgrade KIND
 +
@@ -269,7 +315,17 @@ spec:
 go install sigs.k8s.io/kind@v0.17.0
 ----
 
-=== Uninstall
+== Uninstall
+
+. Remove docker image from KIND
++
+[source,console]
+----
+$ docker exec -it kind-1-control-plane crictl images | grep -E 'IMAGE ID|your-image-name'
+...
+$ docker exec kind-1-control-plane crictl images | grep -E 'docker.io/library/your-image-name' | awk '{print $3}' | xargs --no-run-if-empty docker exec kind-1-control-plane crictl rmi
+Deleted: docker.io/library/your-image-name
+----
 
 . Uninstall MetalLB
 +
@@ -289,7 +345,7 @@ kind
 $ kind delete cluster --name kind-1
 Deleting cluster "kind-1" ...
 $ arp -a
-DESKTOP-E39V4F4 (172.31.160.1) at 00:15:5d:31:24:02 [ether] on eth0
+******* (172.31.160.1) at 00:15:5d:31:24:02 [ether] on eth0
 ----
 
 .References
@@ -302,7 +358,7 @@ DESKTOP-E39V4F4 (172.31.160.1) at 00:15:5d:31:24:02 [ether] on eth0
 ** L2関連
 *** https://metallb.universe.tf/configuration/_advanced_l2_configuration/[MetalLB > ADVANCED L2 CONFIGURATION^]
 
-=== Start/Stop
+== Start/Stop
 
 . Start a docker service
 +
@@ -311,7 +367,7 @@ DESKTOP-E39V4F4 (172.31.160.1) at 00:15:5d:31:24:02 [ether] on eth0
 sudo service docker start
 ----
 
-=== Build & deploy apps
+== Build & deploy apps
 
 . Build a image
 +
@@ -357,7 +413,7 @@ $ docker container exec -it kind-1-control-plane curl http://10.244.0.7:8080/api
 {"message":"Hello, world!"}
 ----
 
-==== Deploy using Pod
+=== Deploy using Pod
 
 . Deploy apps to kind
 +
@@ -530,7 +586,7 @@ pod "greet-go-pod" deleted
 service "greet-go-service" deleted
 ----
 
-==== Deploy using Deployment
+=== Deploy using Deployment
 
 . Deploy apps to kind
 +
@@ -743,7 +799,7 @@ deployment.apps "greet-go-app" deleted
 service "greet-go-service" deleted
 ----
 
-==== Deploy using deployment with loadBalancerIP
+=== Deploy using deployment with loadBalancerIP
 
 . Make sure the EXTERNAL-IP value is `<none>`
 +
@@ -793,18 +849,6 @@ kubernetes             ClusterIP      10.96.0.1      <none>           443/TCP   
 ----
 $ curl -s http://172.18.0.240:8080/api/greet/John --header "Content-Type: application/json"
 {"message":"Hello, world!"}
-----
-
-=== Remove image from KIND
-
-. Remove docker image from KIND
-+
-[source,console]
-----
-$ docker exec -it kind-1-control-plane crictl images | grep -E 'IMAGE ID|your-image-name'
-...
-$ docker exec kind-1-control-plane crictl images | grep -E 'docker.io/library/your-image-name' | awk '{print $3}' | xargs --no-run-if-empty docker exec kind-1-control-plane crictl rmi
-Deleted: docker.io/library/your-image-name
 ----
 
 == References
