@@ -1,10 +1,28 @@
 apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: local-claim
+  labels:
+    app: postgres
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 128Mi
+  storageClassName: ""
+  volumeName: "postgres-local-pv"
+  accessModes:
+    - ReadWriteOnce
+---
+apiVersion: v1
 kind: Pod
 metadata:
   name: postgres-pod
   labels:
     app: postgres
 spec:
+  nodeName: kind-1-control-plane
   containers:
   - name: postgres
     image: postgres:14-alpine
@@ -16,22 +34,29 @@ spec:
         name: postgres-secret
     startupProbe:
       exec:
-        command: ["pg_isready", "-d", "fruits", "-U", "dbuser1"]
+        command: ["pg_isready", "-d", "fruits", "-U", "db_user1"]
       initialDelaySeconds: 5
       periodSeconds: 5
       timeoutSeconds: 30
     volumeMounts:
     - mountPath: /docker-entrypoint-initdb.d
       name: pg-init-user-db
+    - mountPath: /var/lib/postgresql/data
+      name: pg-data-vol
   volumes:
   - name: pg-init-user-db
     configMap:
       name: pg-initdb-config
+  - name: pg-data-vol
+    persistentVolumeClaim:
+      claimName: local-claim
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: pg-initdb-config
+  labels:
+    app: postgres
 data:
   1_init_user_db.sh: |
     #!/bin/bash
@@ -81,6 +106,8 @@ apiVersion: v1
 kind: Service
 metadata:
   name: postgres-service
+  labels:
+    app: postgres
 spec:
   type: LoadBalancer
   selector:

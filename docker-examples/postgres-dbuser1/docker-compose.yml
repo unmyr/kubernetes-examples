@@ -4,7 +4,7 @@ services:
   postgres:
     restart: always
     image: postgres:14-alpine
-    container_name: postgres-dbuser1
+    container_name: postgres-db_user1
     ports:
       - 5432:5432
     env_file: .env
@@ -12,7 +12,7 @@ services:
       - type: bind
         source: "./initdb.d"
         target: "/docker-entrypoint-initdb.d"
-      - /var/tmp/postgres-dbuser1/data:/var/lib/postgresql/data
+      - /var/tmp/postgres-db_user1/data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d fruits -U $${POSTGRES_USER}"]
       interval: 10s

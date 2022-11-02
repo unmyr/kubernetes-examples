@@ -9,7 +9,7 @@
 ----
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=:********
-ADDITIONAL_USER=dbuser1
+ADDITIONAL_USER=db_user1
 ADDITIONAL_PASSWORD=:********
 ----
 
@@ -38,7 +38,7 @@ service/postgres-service created
 +
 [source,plaintext]
 ----
-xxx.xxx.xxx.xxx:5432:fruits:dbuser1:******
+xxx.xxx.xxx.xxx:5432:fruits:db_user1:******
 xxx.xxx.xxx.xxx:5432:fruits:postgres:******
 ----
 
@@ -48,7 +48,7 @@ xxx.xxx.xxx.xxx:5432:fruits:postgres:******
 ----
 $ kubectl get services postgres-service -o jsonpath='{.status.loadBalancer.ingress[*].ip}'
 xxx.xxx.xxx.xxx
-$ psql -h $(kubectl get services postgres-service -o jsonpath='{.status.loadBalancer.ingress[*].ip}') -d fruits -U dbuser1 -f test.sql
+$ psql -h $(kubectl get services postgres-service -o jsonpath='{.status.loadBalancer.ingress[*].ip}') -d fruits -U db_user1 -f test.sql
    search_path
 -----------------
  "$user", public
@@ -103,7 +103,7 @@ secret "postgres-secret" deleted
           name: postgres-secret
           key: POSTGRES_PASSWORD
     - name: ADDITIONAL_USER
-      value: dbuser1
+      value: db_user1
     - name: ADDITIONAL_PASSWORD
       value: abcdefgh
 ----
@@ -121,7 +121,7 @@ secret "postgres-secret" deleted
           name: postgres-secret
           key: POSTGRES_PASSWORD
     - name: ADDITIONAL_USER
-      value: dbuser1
+      value: db_user1
     - name: ADDITIONAL_PASSWORD
       valueFrom:
         secretKeyRef:
@@ -131,9 +131,9 @@ secret "postgres-secret" deleted
 +
 [source,console]
 ----
-$ psql -h xxx.xxx.xxx.xxx -d fruits -U dbuser1
-Password for user dbuser1:
-psql: error: connection to server at "xxx.xxx.xxx.xxx", port 5432 failed: FATAL:  password authentication failed for user "dbuser1"
+$ psql -h xxx.xxx.xxx.xxx -d fruits -U db_user1
+Password for user db_user1:
+psql: error: connection to server at "xxx.xxx.xxx.xxx", port 5432 failed: FATAL:  password authentication failed for user "db_user1"
 ----
 +
 [source,console]
@@ -141,7 +141,7 @@ psql: error: connection to server at "xxx.xxx.xxx.xxx", port 5432 failed: FATAL:
 $ kubectl logs postgres-pod
 ...
 2022-09-24 15:38:08.855 UTC [1] LOG:  database system is ready to accept connections
-2022-09-24 15:38:21.235 UTC [71] FATAL:  password authentication failed for user "dbuser1"
+2022-09-24 15:38:21.235 UTC [71] FATAL:  password authentication failed for user "db_user1"
 2022-09-24 15:38:21.235 UTC [71] DETAIL:  Connection matched pg_hba.conf line 100: "host all all all scram-sha-256"
 ----
 
@@ -172,6 +172,6 @@ $ kubectl logs postgres-pod
 +
 [source,console]
 ----
-$ printf "ALTER ROLE dbuser1 WITH LOGIN PASSWORD '%s';" $(grep ADDITIONAL_PASSWORD .env | awk -F= '{print $2}') | psql -h $(shell kubectl get services postgres-service -o jsonpath='{.status.loadBalancer.ingress[*].ip}') -d fruits -U postgres
+$ printf "ALTER ROLE db_user1 WITH LOGIN PASSWORD '%s';" $(grep ADDITIONAL_PASSWORD .env | awk -F= '{print $2}') | psql -h $(shell kubectl get services postgres-service -o jsonpath='{.status.loadBalancer.ingress[*].ip}') -d fruits -U postgres
 ALTER ROLE
 ----

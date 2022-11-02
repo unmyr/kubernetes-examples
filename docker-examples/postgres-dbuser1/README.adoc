@@ -9,7 +9,7 @@
 ----
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=:********
-ADDITIONAL_USER=dbuser1
+ADDITIONAL_USER=db_user1
 ADDITIONAL_PASSWORD=:********
 ----
 
@@ -57,14 +57,14 @@ docker-compose down
 +
 [source,shell]
 ----
-docker logs postgres-dbuser1
+docker logs postgres-db_user1
 ----
 
 * Debug a container
 +
 [source,shell]
 ----
-docker exec -it postgres-dbuser1 /bin/bash
+docker exec -it postgres-db_user1 /bin/bash
 ----
 
 === Create database and tables
@@ -73,11 +73,11 @@ docker exec -it postgres-dbuser1 /bin/bash
 +
 [source,sql]
 ----
-CREATE ROLE dbuser1 LOGIN PASSWORD '********';
+CREATE ROLE db_user1 LOGIN PASSWORD '********';
 CREATE DATABASE fruits;
 \connect fruits;
-CREATE SCHEMA IF NOT EXISTS dbuser1;
-GRANT USAGE ON SCHEMA dbuser1 TO dbuser1;
+CREATE SCHEMA IF NOT EXISTS db_user1;
+GRANT USAGE ON SCHEMA db_user1 TO db_user1;
 ----
 
 * Create table and insert records.
@@ -85,7 +85,7 @@ GRANT USAGE ON SCHEMA dbuser1 TO dbuser1;
 [source,sql]
 ----
 \connect fruits;
-SET SCHEMA 'dbuser1';
+SET SCHEMA 'db_user1';
 
 CREATE TABLE fruits_menu (
   id SERIAL PRIMARY KEY,
@@ -94,8 +94,8 @@ CREATE TABLE fruits_menu (
   mod_time timestamp DEFAULT current_timestamp
 );
 
-GRANT SELECT,INSERT,UPDATE,DELETE ON fruits_menu TO dbuser1;
-GRANT USAGE ON SEQUENCE fruits_menu_id_seq TO dbuser1;
+GRANT SELECT,INSERT,UPDATE,DELETE ON fruits_menu TO db_user1;
+GRANT USAGE ON SEQUENCE fruits_menu_id_seq TO db_user1;
 
 INSERT INTO fruits_menu (name, price) VALUES
   ('Apple', 100), ('Banana', 120), ('Orange', 110);
@@ -105,29 +105,29 @@ INSERT INTO fruits_menu (name, price) VALUES
 +
 [source,console]
 ----
-$ psql -h localhost -U dbuser1 -d fruits
+$ psql -h localhost -U db_user1 -d fruits
 fruits=> SELECT * FROM pg_catalog.pg_tables WHERE tablename='fruits_menu';
  schemaname |  tablename  | tableowner | tablespace | hasindexes | hasrules | hastriggers | rowsecurity
 ------------+-------------+------------+------------+------------+----------+-------------+-------------
- dbuser1    | fruits_menu | postgres   |            | t          | f        | f           | f
+ db_user1    | fruits_menu | postgres   |            | t          | f        | f           | f
 (1 row)
 
 fruits=> \d
 Did not find any relations.
 
-fruits=> \dt dbuser1.fruits_menu;
+fruits=> \dt db_user1.fruits_menu;
             List of relations
  Schema  |    Name     | Type  |  Owner
 ---------+-------------+-------+----------
- dbuser1 | fruits_menu | table | postgres
+ db_user1 | fruits_menu | table | postgres
 (1 row)
 
-fruits=> \dn+ dbuser1
+fruits=> \dn+ db_user1
                      List of schemas
   Name   |  Owner   |  Access privileges   | Description
 ---------+----------+----------------------+-------------
- dbuser1 | postgres | postgres=UC/postgres+|
-         |          | dbuser1=U/postgres   |
+ db_user1 | postgres | postgres=UC/postgres+|
+         |          | db_user1=U/postgres   |
 (1 row)
 ----
 
@@ -135,7 +135,7 @@ fruits=> \dn+ dbuser1
 +
 [source,console]
 ----
-$ psql -h localhost -U dbuser1 -d fruits -c "SET SCHEMA 'dbuser1'; SELECT * FROM fruits_menu;"
+$ psql -h localhost -U db_user1 -d fruits -c "SET SCHEMA 'db_user1'; SELECT * FROM fruits_menu;"
  id |  name  | price |          mod_time
 ----+--------+-------+----------------------------
   1 | Apple  |   100 | 2022-09-11 06:52:07.674135
@@ -143,7 +143,7 @@ $ psql -h localhost -U dbuser1 -d fruits -c "SET SCHEMA 'dbuser1'; SELECT * FROM
   3 | Orange |   112 | 2022-09-11 06:52:07.674135
 (3 rows)
 
-$ psql -h localhost -U dbuser1 -d fruits -c "SET search_path TO dbuser1;SELECT * FROM fruits_menu;"
+$ psql -h localhost -U db_user1 -d fruits -c "SET search_path TO db_user1;SELECT * FROM fruits_menu;"
  id |  name  | price |          mod_time
 ----+--------+-------+----------------------------
   1 | Apple  |   100 | 2022-09-11 06:52:07.674135
@@ -151,7 +151,7 @@ $ psql -h localhost -U dbuser1 -d fruits -c "SET search_path TO dbuser1;SELECT *
   3 | Orange |   112 | 2022-09-11 06:52:07.674135
 (3 rows)
 
-$ psql -h localhost -U dbuser1 -d fruits -c "SELECT * FROM dbuser1.fruits_menu;"
+$ psql -h localhost -U db_user1 -d fruits -c "SELECT * FROM db_user1.fruits_menu;"
  id |  name  | price |          mod_time
 ----+--------+-------+----------------------------
   1 | Apple  |   100 | 2022-09-11 06:52:07.674135

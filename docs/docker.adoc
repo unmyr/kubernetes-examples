@@ -128,7 +128,7 @@ kindest/node:v1.24.0   running   kind-control-plane
 +
 [source,shell]
 ----
-docker inspect --format='{{.State.Health.Status}}' postgres-dbuser1
+docker inspect --format='{{.State.Health.Status}}' postgres-db_user1
 ----
 
 * Get container IP

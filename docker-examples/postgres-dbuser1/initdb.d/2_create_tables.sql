@@ -1,7 +1,7 @@
 \connect fruits;
 \conninfo
 
-SET SCHEMA 'dbuser1';
+SET SCHEMA 'db_user1';
 
 CREATE TABLE fruits_menu (
   id SERIAL PRIMARY KEY,
@@ -10,13 +10,13 @@ CREATE TABLE fruits_menu (
   mod_time timestamp DEFAULT current_timestamp
 );
 
-GRANT SELECT,INSERT,UPDATE,DELETE ON fruits_menu TO dbuser1;
-GRANT USAGE ON SEQUENCE fruits_menu_id_seq TO dbuser1;
+GRANT SELECT,INSERT,UPDATE,DELETE ON fruits_menu TO db_user1;
+GRANT USAGE ON SEQUENCE fruits_menu_id_seq TO db_user1;
 
 INSERT INTO fruits_menu (name, price) VALUES
   ('Apple', 100), ('Banana', 120), ('Orange', 110);
 
 \l
-\dt dbuser1.*
+\dt db_user1.*
 \d fruits_menu
 \dn+

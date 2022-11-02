@@ -1,8 +1,8 @@
-COTAINER_NAME=postgres-dbuser1
+COTAINER_NAME=postgres-db_user1
 DATA_DIR=/var/tmp/$(COTAINER_NAME)/
-DB_USER_NAME=dbuser1
+DB_USER_NAME=db_user1
 DB_NAME="fruits"
-SCHEMA_NAME=dbuser1
+SCHEMA_NAME=db_user1
 
 .PHONY: start stop
 

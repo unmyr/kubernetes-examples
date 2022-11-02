@@ -1,69 +1,53 @@
-DB_USER_NAME=dbuser1
+NAMESPACE=postgres
+DB_USER_NAME=db_user1
 DB_NAME="fruits"
-SCHEMA_NAME=dbuser1
+SCHEMA_NAME=db_user1
 
 .PHONY: clean create log service show sql
 
 create:
 	@echo -n "+ "
-	./secret.sh create
+	./postgres.sh create
 	@echo -n "+ "
-	kubectl apply -f postgres.pod.yaml
+	-kubectl -n $(NAMESPACE) get -l app=postgres pods,services
 	@echo -n "+ "
-	-kubectl get pods postgres-pod
+	kubectl -n $(NAMESPACE) wait --for condition=Ready --timeout=90s pod postgres-pod
 	@echo -n "+ "
-	kubectl wait --for condition=Ready --timeout=90s pod postgres-pod
+	-kubectl -n $(NAMESPACE) get -l app=postgres pods,services
 	@echo -n "+ "
-	-kubectl get pods postgres-pod
-	@echo -n "+ "
-	kubectl get services postgres-service
-	@echo -n "+ "
-    # lazy evaluation of string using shell
-	psql -h $$(kubectl get services postgres-service -o jsonpath='{.status.loadBalancer.ingress[*].ip}') -U $(DB_USER_NAME) -d fruits -f test.sql
+	# lazy evaluation of string using shell
+	psql -h $$(kubectl get -n $(NAMESPACE) services postgres-service -o jsonpath='{.status.loadBalancer.ingress[*].ip}') -U $(DB_USER_NAME) -d fruits -f test.sql
 
 create2:
 	@echo -n "+ "
-	./secret.sh create
+	./postgres.sh create
 	@echo -n "+ "
-	kubectl apply -f postgres.pod.yaml
+	-kubectl -n $(NAMESPACE) get -l app=postgres pods,services
 	@echo -n "+ "
-	-kubectl get pods postgres-pod
+	timeout 30 bash -c "while [ -z $$(kubectl get -n $(NAMESPACE) services postgres-service -o jsonpath='{.status.loadBalancer.ingress[*].ip}') ]; do sleep 1; done"
 	@echo -n "+ "
-	timeout 30 bash -c "while [ -z $$(kubectl get services postgres-service -o jsonpath='{.status.loadBalancer.ingress[*].ip}') ]; do sleep 1; done"
+	-kubectl -n $(NAMESPACE) get -l app=postgres pods,services
 	@echo -n "+ "
-	-kubectl get pods postgres-pod
-	@echo -n "+ "
-	kubectl get services postgres-service
-	@echo -n "+ "
-    # lazy evaluation of string using shell
-	psql -h $$(kubectl get services postgres-service -o jsonpath='{.status.loadBalancer.ingress[*].ip}') -U $(DB_USER_NAME) -d fruits -f test.sql
+	# lazy evaluation of string using shell
+	psql -h $$(kubectl -n $(NAMESPACE) get services postgres-service -o jsonpath='{.status.loadBalancer.ingress[*].ip}') -U $(DB_USER_NAME) -d fruits -f test.sql
 
 clean:
 	@echo -n "+ "
-	kubectl delete -f postgres.pod.yaml
-	@echo -n "+ "
-	./secret.sh delete
+	-./postgres.sh delete
 
 show:
-	@echo -n "+ "
-	kubectl get configmap pg-initdb-config
-	@echo -n "+ "
-	-kubectl get pods postgres-pod
-	@echo -n "+ "
-	-kubectl describe pod postgres-pod
-	@echo -n "+ "
-	-kubectl logs postgres-pod
+	./postgres.sh show
 
 service:
 	@echo -n "+ "
-	kubectl get services postgres-service
+	kubectl -n $(NAMESPACE) get services postgres-service
 
 log:
 	@echo -n "+ "
-	kubectl logs postgres-pod
+	kubectl -n $(NAMESPACE) logs postgres-pod
 
 sql:
-	$(eval TARGET_HOST := $(shell kubectl get services postgres-service -o jsonpath='{.status.loadBalancer.ingress[*].ip}'))
+	$(eval TARGET_HOST := $(shell kubectl -n $(NAMESPACE) get services postgres-service -o jsonpath='{.status.loadBalancer.ingress[*].ip}'))
 	@echo -n "+ "
 	psql -h $(TARGET_HOST) -U $(DB_USER_NAME) -d fruits -c "SHOW search_path;"
 	@echo -n "+ "
