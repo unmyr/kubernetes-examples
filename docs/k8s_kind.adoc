@@ -851,6 +851,15 @@ $ curl -s http://172.18.0.240:8080/api/greet/John --header "Content-Type: applic
 {"message":"Hello, world!"}
 ----
 
+== Storage
+
+=== Persistent Volumes
+
+* https://mauilion.dev/posts/kind-pvc/[Kind Persistent Volumes | mauilion.dev^] +
+  kind persistent volume - Search
+* https://stackoverflow.com/questions/62694361/how-to-reference-a-local-volume-in-kind-kubernetes-in-docker[How to reference a local volume in Kind (kubernetes in docker) - Stack Overflow^] +
+  k8s kind persistent volume - Search
+
 == References
 
 * https://blog.framinal.life/entry/2020/04/16/022042[【手順あり】MetalLBの使い方から動きまで解説します - フラミナル^] 
