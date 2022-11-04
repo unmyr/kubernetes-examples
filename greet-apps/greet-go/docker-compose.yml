@@ -1,0 +1,8 @@
+version: "3.7"
+
+services:
+  app:
+    image: greet-go:0.1
+    container_name: greet-go
+    ports:
+      - 8080:8080

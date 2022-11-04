@@ -93,11 +93,22 @@ greet-go     latest    8e9675951312   About a minute ago   99.6MB
 === Test docker image
 
 . Run docker
+
+* Using docker
 +
 [source,shell]
 ----
 docker run --name greet-go -p 8080:8080 --rm -d greet-go:0.1
 ----
+
+* Using docker-compose
++
+[source,shell]
+----
+docker-compose up -d
+----
+
+. Check docker running
 +
 [source,shell]
 ----
@@ -126,10 +137,19 @@ $ curl -s http://172.17.0.2:8080/api/greet/John | python3 -m json.tool
 ----
 
 . Stop docker
+
+* Using docker
 +
-[source,console]
+[source,shell]
 ----
-$ docker stop greet-go
+docker stop greet-go
+----
+
+* Using docker-compose
++
+[source,shell]
+----
+docker-compose down
 ----
 
 [NOTE]
