@@ -9,6 +9,7 @@ include $(DOC_ROOT)/asciidoc.mk
 
 HTML_LIST=\
 mkdir_and_copy \
+$(DEST_DIR)/buildpacks.html \
 $(DEST_DIR)/docker.html \
 $(DEST_DIR)/k8s_kind.html \
 $(DEST_DIR)/index.html

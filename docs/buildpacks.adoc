@@ -1,0 +1,34 @@
+ifndef::leveloffset[]
+:toc: left
+:toclevels: 3
+:icons: font
+endif::[]
+
+include::header.adoc[]
+
+== Paketo Buildpacks
+
+* https://yujiorama.github.io/unofficial-translations/paketo-website/ja/docs/[Paketo Buildpacks 入門 - Paketo Buildpacks^]
+
+=== Install pack
+
+* https://buildpacks.io/docs/tools/pack/[Pack · Cloud Native Buildpacks^]
+
+.Install on Ubuntu
+
+. Install `pack-cli`
++
+[source,shell]
+----
+sudo add-apt-repository ppa:cncf-buildpacks/pack-cli
+sudo apt-get update
+sudo apt-get install pack-cli
+----
+
+. Auto-completion
++
+[source,shell]
+.bashrc
+----
+type -p pack > /dev/null && . $(pack completion)
+----

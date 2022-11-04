@@ -1,21 +1,91 @@
+ifndef::leveloffset[]
+:toc: left
+:toclevels: 3
+:icons: font
+endif::[]
+
 == Example of greet apps
 
-=== Build docker
+=== Init go project
 
-. Build docker.
+. Init go project
++
+[source,shell]
+----
+go mod init example.com/go-app
+----
 +
 [source,console]
 ----
-$ docker image build --tag greet-go:0.1 .
+$ go mod init example.com/go-app
+go: creating new go.mod: module example.com/go-app
+go: to add module requirements and sums:
+        go mod tidy
+$ cat go.mod
+module example.com/go-app
+
+go 1.19
+----
+
+=== Build docker
+
+==== Build docker using docker command
+
+. Build docker image
++
+[source,shell]
+----
+docker image build --tag greet-go:0.1 .
+----
+
+. Check results
++
+[source,shell]
+----
+docker image ls --filter "reference=greet-go*"
+----
++
+[source,console]
+----
+$ docker image ls --filter "reference=greet-go*"
+REPOSITORY   TAG       IMAGE ID       CREATED          SIZE
+greet-go     0.1       0bc5a647069d   17 seconds ago   12.2MB
+----
+
+==== Build docker using Buildpacks
+
+. Build a docker image
++
+[source,shell]
+----
+pack build greet-go --builder paketobuildpacks/builder:base -t greet-go:0.1 --creation-time=now
+----
++
+.References
+* https://buildpacks.io/docs/tools/pack/cli/pack_build/[pack build · Cloud Native Buildpacks^]
+
+. Check results
++
+[source,shell]
+----
+docker image ls --filter "reference=greet-go*"
+----
++
+[source,console]
+----
+$ docker image ls --filter "reference=greet-go*"
+REPOSITORY   TAG       IMAGE ID       CREATED              SIZE
+greet-go     0.1       8e9675951312   About a minute ago   99.6MB
+greet-go     latest    8e9675951312   About a minute ago   99.6MB
 ----
 
 === Test docker image
 
 . Run docker
 +
-[source,console]
+[source,shell]
 ----
-$ docker run --name greet-go -p 8080:8080 --rm -d greet-go:0.1
+docker run --name greet-go -p 8080:8080 --rm -d greet-go:0.1
 ----
 +
 [source,shell]
@@ -23,9 +93,9 @@ $ docker run --name greet-go -p 8080:8080 --rm -d greet-go:0.1
 docker container ls --filter name=greet-go
 ----
 +
-[source,console]
+[source,shell]
 ----
-$ docker ps --filter name=greet-go
+docker ps --filter name=greet-go
 ----
 
 . Request to docker
@@ -50,6 +120,15 @@ $ curl -s http://172.17.0.2:8080/api/greet/John | python3 -m json.tool
 ----
 $ docker stop greet-go
 ----
+
+[NOTE]
+.Remove docker images
+====
+[source,shell]
+----
+docker image rm greet-go:0.1 greet-go:latest
+----
+====
 
 === Deploy
 

@@ -1,3 +1,4 @@
 <<index.adoc#,Index>> {vbar}
+<<buildpacks.adoc#,Docker>> {vbar}
 <<docker.adoc#,Docker>> {vbar}
 <<k8s_kind.adoc#,Kind>> +
