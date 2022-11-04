@@ -1,0 +1,179 @@
+ifndef::leveloffset[]
+:toc: left
+:toclevels: 3
+endif::[]
+
+ifndef::env-github[]
+:icons: font
+endif::[]
+
+ifdef::env-github[]
+:tip-caption: :bulb:
+:note-caption: :information_source:
+:important-caption: :heavy_exclamation_mark:
+:caution-caption: :fire:
+:warning-caption: :warning:
+endif::[]
+
+== Example of greet apps
+
+=== Init go project
+
+. Init go project
++
+[source,shell]
+----
+npm install
+----
+
+=== Build docker
+
+==== Build docker using Buildpacks
+
+. Build a docker image
++
+[source,shell]
+----
+pack build greet-node --builder paketobuildpacks/builder:base -t greet-node:0.1 --creation-time=now
+----
++
+.References
+* https://buildpacks.io/docs/tools/pack/cli/pack_build/[pack build · Cloud Native Buildpacks^]
+
+. Check results
++
+[source,shell]
+----
+docker image ls --filter "reference=greet-node*"
+----
++
+[source,console]
+----
+$ docker image ls --filter "reference=greet-node*"
+REPOSITORY   TAG       IMAGE ID       CREATED              SIZE
+greet-node   0.1       71b4e1f30795   About a minute ago   200MB
+greet-node   latest    71b4e1f30795   About a minute ago   200MB
+----
+
+=== Test docker image
+
+. Run docker
++
+[source,shell]
+----
+docker-compose up -d
+----
+
+. Check docker running
++
+[source,shell]
+----
+docker container ls --filter name=greet-node
+----
++
+[source,shell]
+----
+docker ps --filter name=greet-node
+----
+
+. Request to docker
++
+[source,console]
+----
+$ curl -s http://127.0.0.1:8080/api/greet/John | python3 -m json.tool
+{
+    "message": "Hello John!"
+}
+$ docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' greet-node
+172.20.0.2
+$ curl -s http://$(docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' greet-node):8080/api/greet/John | python3 -m json.tool
+{
+    "message": "Hello John!"
+}
+----
+
+. Stop docker
++
+[source,shell]
+----
+docker-compose down
+----
+
+[NOTE]
+.Remove docker images
+====
+[source,shell]
+----
+docker image rm greet-node:0.1 greet-node:latest
+----
+====
+
+=== Deploy
+
+. Push to KIND
++
+[source,console]
+----
+kind --name kind-1 load docker-image greet-node:0.1
+----
++
+[source,console]
+----
+$ docker exec -it kind-1-control-plane crictl images
+IMAGE                                      TAG                  IMAGE ID            SIZE
+...
+docker.io/library/greet-node               0.1                  71b4e1f30795f       208MB
+...
+----
+
+==== Using pod
+
+. Deploy
++
+[source,console]
+----
+$ kubectl apply -f greet-node.pod.lb.yaml
+pod/greet-node-pod created
+service/greet-node-service created
+$ kubectl get -l app=greet-node-app services,pods
+NAME                         TYPE           CLUSTER-IP     EXTERNAL-IP      PORT(S)          AGE
+service/greet-node-service   LoadBalancer   10.96.107.71   172.18.254.241   3000:30637/TCP   88s
+
+NAME                 READY   STATUS    RESTARTS   AGE
+pod/greet-node-pod   1/1     Running   0          89s
+$ kubectl logs pod/greet-node-pod
+Example app listening at http://localhost:8080
+----
+
+. Test
++
+[source,console]
+----
+$ curl -s http://172.18.254.241:3000/api/greet/John | python3 -m json.tool
+{
+    "message": "Hello John!"
+}
+$ curl -s http://$(kubectl get services greet-node-service -o jsonpath='{.status.loadBalancer.ingress[*].ip}'):$(kubectl get services greet-node-service -o jsonpath='{.spec.ports[0].port}')/api/greet/John --header "Content-Type: application/json" | python3 -m json.tool
+{
+    "message": "Hello John!"
+}
+----
+
+. Remove apps
++
+[source,console]
+----
+$ kubectl delete -f greet-node.pod.lb.yaml
+pod "greet-node-pod" deleted
+service "greet-node-service" deleted
+----
+
+. Remove docker image from KIND
++
+[source,console]
+----
+$ docker exec -it kind-1-control-plane crictl images | grep -E 'IMAGE ID|docker.io/library/greet-node'
+...
+$ docker exec kind-1-control-plane crictl images | grep -E 'docker.io/library/greet-node' | awk '{print $3}' | xargs --no-run-if-empty docker exec kind-1-control-plane crictl rmi
+Deleted: docker.io/library/greet-node:0.1
+----

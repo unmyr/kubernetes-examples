@@ -1,0 +1,8 @@
+version: "3.7"
+
+services:
+  app:
+    image: greet-node:0.1
+    container_name: greet-node
+    ports:
+      - 8080:8080

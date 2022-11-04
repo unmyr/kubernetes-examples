@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: greet-node-pod
+  labels:
+    app: greet-node-app
+spec:
+  containers:
+  - name: greet-node
+    image: greet-node:0.1
+    imagePullPolicy: Never
+    ports:
+    - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: greet-node-service
+  labels:
+    app: greet-node-app
+spec:
+  type: LoadBalancer
+  selector:
+    app: greet-node-app
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 8080
+      protocol: TCP

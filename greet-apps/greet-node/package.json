@@ -1,0 +1,19 @@
+{
+  "name": "greet-node",
+  "version": "0.1.0",
+  "description": "Minimal example using express, mocha and supertest.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/unmyr/kubernetes-examples.git"
+  },
+  "author": "unmyr",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "log4js": "^6.7.0"
+  }
+}
