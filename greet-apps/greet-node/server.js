@@ -15,7 +15,7 @@ app.use(
 );
 
 app.get('/api/greet/:name', (req, res) => {
-  logger.debug(`GET: /api/greep/${req.params.name}}`);
+  logger.debug(`GET: /api/greet/${req.params.name}`);
   res.json({ message: `Hello ${req.params.name}!` });
 });
 

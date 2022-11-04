@@ -157,6 +157,9 @@ $ curl -s http://$(kubectl get services greet-node-service -o jsonpath='{.status
 {
     "message": "Hello John!"
 }
+$ kubectl logs pod/greet-node-pod
+Example app listening at http://localhost:8080
+[2022-11-04T16:40:04.400] [DEBUG] default - GET: /api/greet/John
 ----
 
 . Remove apps
