@@ -43,6 +43,7 @@
         "hasrules",
         "hastriggers",
         "Iface",
+        "ifdef",
         "ifndef",
         "importlib",
         "inet",
