@@ -8,7 +8,7 @@ include::header.adoc[]
 
 == Paketo Buildpacks
 
-* https://yujiorama.github.io/unofficial-translations/paketo-website/ja/docs/[Paketo Buildpacks 入門 - Paketo Buildpacks^]
+* https://paketo.io/docs/[Getting Started - Paketo Buildpacks^]
 
 === Install pack
 
@@ -32,3 +32,9 @@ sudo apt-get install pack-cli
 ----
 type -p pack > /dev/null && . $(pack completion)
 ----
+
+=== Examples
+
+.paketo-buildpacks
+* https://github.com/paketo-buildpacks/samples[paketo-buildpacks/samples: A collection of samples^]
+* https://github.com/paketo-buildpacks/python/tree/main/integration/testdata[python/integration/testdata at main · paketo-buildpacks/python^]
