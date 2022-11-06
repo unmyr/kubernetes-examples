@@ -446,10 +446,10 @@ docker rmi sample-image:0.2
 ----
 $ docker network ls
 NETWORK ID     NAME      DRIVER    SCOPE
-e4d225111963   bridge    bridge    local
-07906dfdeb1b   host      host      local
-cb34625844b6   kind      bridge    local
-49fa216f1f3a   none      null      local
+eeeeeeeeeeee   bridge    bridge    local
+bbbbbbbbbbbb   host      host      local
+cccccccccccc   kind      bridge    local
+aaaaaaaaaaaa   none      null      local
 ----
 
 ** Filter by name
@@ -458,7 +458,34 @@ cb34625844b6   kind      bridge    local
 ----
 $ docker network ls -f name=kind
 NETWORK ID     NAME      DRIVER    SCOPE
-cb34625844b6   kind      bridge    local
+cccccccccccc   kind      bridge    local
+----
+
+** Filter by bridge
++
+[source,console]
+----
+$ docker network ls --filter driver=bridge
+NETWORK ID     NAME      DRIVER    SCOPE
+dddddddddddd   bridge    bridge    local
+cccccccccccc   kind      bridge    local
+----
+
+** Get specific columns
++
+[source,console]
+----
+$ docker network ls
+NETWORK ID     NAME      DRIVER    SCOPE
+dddddddddddd   bridge    bridge    local
+bbbbbbbbbbbb   host      host      local
+cccccccccccc   kind      bridge    local
+aaaaaaaaaaaa   none      null      local
+$ docker network ls --format '{{.ID}}{{"\t"}}{{.Name}}{{"\t"}}{{.Driver}}{{"\t"}}{{.Scope}}{{"\t"}}{{.CreatedAt}}'
+dddddddddddd    bridge  bridge  local   2022-11-06 23:51:56.1249507 +0900 JST
+bbbbbbbbbbbb    host    host    local   2022-08-12 20:44:06.362804 +0900 JST
+cccccccccccc    kind    bridge  local   2022-08-13 11:22:13.8534625 +0900 JST
+aaaaaaaaaaaa    none    null    local   2022-08-12 20:44:06.1659346 +0900 JST
 ----
 
 * Show bridge
@@ -471,26 +498,32 @@ docker network inspect bridge
 * Get bridge name associated to docker network
 +
 [source,shell]
+.Using `docker network ls`
 ----
-docker network inspect -f {{.Id}} nginx_default | sed -e 's/^\(.\{12\}\).*/br-\1/'
+NETWORK_NAME="kind"
+docker network ls --filter name=${NETWORK_NAME} --format 'br-{{.ID}}'
+----
++
+[source,shell]
+.Using `docker network inspect`
+----
+NETWORK_NAME="kind"
+docker network inspect -f {{.Id}} ${NETWORK_NAME} | sed -e 's/^\(.\{12\}\).*/br-\1/'
 ----
 
 * Get a network interface associated to docker network
 +
 [source,shell]
 ----
-NETWORK_NAME="nginx_default"
-ip addr show $(docker network inspect -f {{.Id}} ${NETWORK_NAME} | sed -e 's/^\(.\{12\}\).*/br-\1/')
+NETWORK_NAME="kind"
+ip -family inet address show dev $(docker network ls --filter name=${NETWORK_NAME} --format 'br-{{.ID}}')
 ----
 +
 [source,plaintext]
 .Results
 ----
-18: br-2a92a4b4f536: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default
-    link/ether 02:42:72:17:69:10 brd ff:ff:ff:ff:ff:ff
-    inet 172.19.0.1/16 brd 172.19.255.255 scope global br-2a92a4b4f536
-       valid_lft forever preferred_lft forever
-    inet6 fe80::42:72ff:fe17:6910/64 scope link
+8: br-cccccccccccc: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default
+    inet 172.18.0.1/16 brd 172.18.255.255 scope global br-cccccccccccc
        valid_lft forever preferred_lft forever
 ----
 
@@ -527,15 +560,20 @@ Address                  HWtype  HWaddress           Flags Mask            Iface
 +
 [source,shell]
 ----
-NETWORK_NAME="nginx_default"
-ip neigh show dev $(docker network inspect -f {{.Id}} ${NETWORK_NAME} | sed -e 's/^\(.\{12\}\).*/br-\1/')
+NETWORK_NAME="kind"
+ip -family inet neigh show dev $(docker network ls --filter name=${NETWORK_NAME} --format 'br-{{.ID}}')
 ----
 +
 [source,plaintext]
 .Results
 ----
-172.19.0.2 lladdr 02:42:ac:13:00:02 STALE
+172.18.0.2 lladdr 02:42:ac:12:00:02 STALE
 ----
+
+.References
+* https://docs.docker.jp/engine/reference/commandline/network_ls.html[docker network ls — Docker-docs-ja 20.10 ドキュメント^]
+* https://docs.docker.jp/engine/reference/commandline/network_inspect.html[docker network inspect — Docker-docs-ja 20.10 ドキュメント^]
+
 
 === Secrets
 
