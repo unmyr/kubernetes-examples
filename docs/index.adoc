@@ -221,6 +221,8 @@ kubectl get secret -n bar foo-secrets -o yaml -o jsonpath='{.data.message}' | ba
 [source,shell]
 ----
 kubectl delete -n bar foo-secrets
+kubectl delete ns foo
+kubectl delete ns bar
 ----
 
 === Namespace
