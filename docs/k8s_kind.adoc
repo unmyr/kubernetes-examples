@@ -341,7 +341,7 @@ sudo arp -d 172.18.254.240
 [source,console]
 ----
 $ kind get clusters
-kind
+kind-1
 $ kind delete cluster --name kind-1
 Deleting cluster "kind-1" ...
 $ arp -a
