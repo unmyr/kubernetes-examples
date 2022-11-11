@@ -1,5 +1,6 @@
 {
     "cSpell.words": [
+        "aarch",
         "actix",
         "ADDRESSPOOL",
         "addresspools",
@@ -60,6 +61,7 @@
         "kindnetd",
         "Knative",
         "kpack",
+        "krew",
         "kube",
         "kubectl",
         "Kubernetes",
@@ -127,6 +129,7 @@
         "WORKDIR",
         "WSGI",
         "Wtype",
-        "zipp"
+        "zipp",
+        "zxvf"
     ]
 }

@@ -168,6 +168,61 @@ secret "secret-ex1" deleted
 namespace "secret-ex1" deleted
 ----
 
+* copying k8s secrets one namespace to another
+
+** Using neat plugin
++
+[source,shell]
+----
+kubectl get secrets foo-secrets -n foo -o yaml | kubectl neat | sed -e 's/\(namespace:\) foo/\1 bar/' | kubectl apply -n bar -f -
+----
+
+** Using sed
++
+[source,shell]
+----
+kubectl get secrets foo-secrets -n foo -o yaml | grep -vE '(resourceVersion|uid):' | sed -e 's/\(namespace:\) foo/\1 bar/' | kubectl apply -n bar -f -
+----
++
+[source,shell]
+----
+kubectl get secrets foo-secrets -n foo -o yaml | sed -e '/\(resourceVersion\|uid\)/d; s/\(namespace:\) foo/\1 bar/' | kubectl apply -n bar -f -
+----
+
+** Examples
+
+*** Setup
++
+[source,shell]
+----
+kubectl create ns foo
+kubectl create ns bar
+kubectl create secret generic foo-secrets -n foo --from-literal=message="I'am foo"
+----
+
+
+*** List secrets
++
+[source,shell]
+----
+kubectl get secrets -A
+----
+
+*** Show secrets
++
+[source,shell]
+----
+kubectl get secret -n foo foo-secrets -o yaml -o jsonpath='{.data.message}' | base64 -d; echo
+kubectl get secret -n bar foo-secrets -o yaml -o jsonpath='{.data.message}' | base64 -d; echo
+----
+
+*** Delete Resources
++
+[source,shell]
+----
+kubectl delete -n bar foo-secrets
+----
+
 === Namespace
 
 [source,console]
@@ -619,9 +674,68 @@ $ kubectl get services --all-namespaces | grep 172.18.254
 default          go-hello-pod-metallb   LoadBalancer   10.96.17.114    172.18.254.240   8080:30161/TCP           22m
 ----
 
+== krew
+
+=== Install krew
+
+https://krew.sigs.k8s.io/docs/user-guide/setup/install/[Installing · Krew^]
+
+.Install
+. Run this command to download and install krew:
++
+[source,shell]
+----
+(
+  set -x; cd "$(mktemp -d)" &&
+  OS="$(uname | tr '[:upper:]' '[:lower:]')" &&
+  ARCH="$(uname -m | sed -e 's/x86_64/amd64/' -e 's/\(arm\)\(64\)\?.*/\1\2/' -e 's/aarch64$/arm64/')" &&
+  KREW="krew-${OS}_${ARCH}" &&
+  curl -fsSLO "https://github.com/kubernetes-sigs/krew/releases/latest/download/${KREW}.tar.gz" &&
+  tar zxvf "${KREW}.tar.gz" &&
+  ./"${KREW}" install krew
+)
+----
+
+. Add the $HOME/.krew/bin directory to your PATH environment variable.
++
+[source,shell]
+.~/.bashrc
+----
+test -d ${KREW_ROOT:-$HOME/.krew} && export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
+----
+
+. Run kubectl krew to check the installation.
++
+[source,shell]
+----
+kubectl krew version
+----
+
+. Install plug-ins
++
+[source,shell]
+----
+kubectl krew install neat
+----
+
 == kpack
 
 * https://buildpacks.io/docs/tools/kpack/[kpack · Cloud Native Buildpacks^]
+
+.Install
+. Download the most recent https://github.com/pivotal/kpack/releases[github release^]. The release.yaml is an asset on the release.
++
+[source,shell]
+----
+kubectl apply -f https://github.com/pivotal/kpack/releases/download/v0.7.2/release-0.7.2.yaml
+----
+
+. Ensure that the kpack controller & webhook have a status of Running using kubectl get.
++
+[source,shell]
+----
+kubectl get pods --namespace kpack --watch
+----
 
 == Tekton
 
