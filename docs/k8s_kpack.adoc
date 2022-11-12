@@ -1,0 +1,164 @@
+ifndef::leveloffset[]
+:toc: left
+:toclevels: 3
+
+ifndef::env-github[]
+:icons: font
+endif::[]
+
+ifdef::env-github[]
+// Alternative to :icons: font on GitHub.
+:tip-caption: :bulb:
+:note-caption: :information_source:
+:important-caption: :heavy_exclamation_mark:
+:caution-caption: :fire:
+:warning-caption: :warning:
+endif::[]
+
+ifndef::imagesdir[]
+:imagesdir: images
+endif::[]
+
+include::header.adoc[]
+
+endif::[]
+
+== kpack
+
+* https://ik.am/entries/683[kpack on kind (K8s in Docker)でBuild Serviceによるコンテナイメージ管理をスモールスタート - IK.AM^]
+
+=== Install
+
+* https://buildpacks.io/docs/tools/kpack/[kpack · Cloud Native Buildpacks^]
+
+.Install
+. Download the most recent https://github.com/pivotal/kpack/releases[github release^]. The release.yaml is an asset on the release.
++
+[source,shell]
+----
+kubectl apply -f https://github.com/pivotal/kpack/releases/download/v0.7.2/release-0.7.2.yaml
+----
+
+. Ensure that the kpack controller & webhook have a status of Running using kubectl get.
++
+[source,shell]
+----
+kubectl get pods --namespace kpack --watch
+----
+
+=== GitHub settings
+
+. Click on the `Settings` item in the top right corner menu:
++
+image:k8s-kpack-github-01-menu-in-the-upper-right-corner.png[width=252,height=609]
+
+. Click `Developer settings`.
++
+image:k8s-kpack-github-02-settings-menu.png[width=384,height=484] 
+
+. Click `Personal access tokens` > `Tokens (classic)`  in the left menu.
++
+image:k8s-kpack-github-03-personal-access-tokens.png[width=383,height=471]
++
+[NOTE]
+====
+> GitHub Packages only supports authentication using a personal access token (classic). 
+
+* https://docs.github.com/ja/packages/learn-github-packages/about-permissions-for-github-packages[About permissions for GitHub Packages - GitHub Docs^]
+====
+
+. Check `write:packages` and `delete:packages` and click `generate token`.
++
+image:k8s-kpack-github-04-personal-access-tokens.png[]
+
+
+=== Results
+
+. Store docker secrets
++
+[source,shell]
+.kind/docker-config.sh
+----
+include::../kind/docker-config.sh[]
+----
++
+[source,shell]
+----
+bash kind/docker-config.sh apply
+----
+
+. Setup Cluster Builder
++
+[source,shell]
+.kind/cluster-builder.sh
+----
+include::../kind/cluster-builder.sh[]
+----
++
+[source,shell]
+----
+bash kind/cluster-builder.sh apply
+----
+
+. Results
++
+image::k8s-kpack-github-packages-01.png[]
+
+.References
+* https://hub.docker.com/r/paketobuildpacks/builder[paketobuildpacks/builder - Docker Image | Docker Hub^]
+* https://hub.docker.com/r/paketobuildpacks/build[paketobuildpacks/build - Docker Image | Docker Hub^]
+* https://hub.docker.com/r/paketobuildpacks/run[paketobuildpacks/run - Docker Image | Docker Hub^]
+
+=== Build
+
+https://github.com/pivotal/kpack/blob/main/docs/build.md[kpack/build.md at main · pivotal/kpack^]
+
+[source,yaml]
+.build-with-kpack.yaml
+----
+apiVersion: kpack.io/v1alpha2
+kind: Build
+metadata:
+  name: greet-go-build
+spec:
+  tags:
+  - ghcr.io/unmyr/greet-go:0.1
+  serviceAccountName: default
+  builder:
+    image: ghcr.io/unmyr/kpack/clusterbuilder:base
+  source:
+    git:
+      url: https://github.com/unmyr/greet-go.git
+      revision: main
+----
+
+[source,console]
+----
+$ kubectl get pod
+NAME                       READY   STATUS      RESTARTS   AGE
+greet-go-build-build-pod   0/1     Completed   0          9m3s
+----
+
+[source,console]
+----
+$ kubectl apply -f build-with-kpack.yaml
+build.kpack.io/greet-go-build created
+$ kubectl get pod
+NAME                       READY   STATUS       RESTARTS   AGE
+greet-go-build-build-pod   0/1     Init:Error   0          19m
+$ kubectl logs pod/greet-go-build-build-pod
+Defaulted container "completion" out of: completion, prepare (init), analyze (init), detect (init), restore (init), build (init), export (init)
+Error from server (BadRequest): container "completion" in pod "greet-go-build-build-pod" is waiting to start: PodInitializing
+$ kubectl logs pod/greet-go-build-build-pod -c prepare
+Loading secret for "https://ghcr.io" from secret "ghcr-secret" at location "/var/build-secrets/ghcr-secret"
+Loading cluster credential helpers
+Error verifying write access to "greet-go:0.1": UNAUTHORIZED
+----
+
+[source,console]
+----
+$ curl -s http://127.0.0.1:8080/api/greet/John | python3 -m json.tool
+{
+    "message": "Hello, John!"
+}
+----

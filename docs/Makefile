@@ -12,6 +12,7 @@ mkdir_and_copy \
 $(DEST_DIR)/docker_buildpacks.html \
 $(DEST_DIR)/docker.html \
 $(DEST_DIR)/k8s_kind.html \
+$(DEST_DIR)/k8s_kpack.html \
 $(DEST_DIR)/index.html
 
 .PHONY: adoc mkdir_and_copy

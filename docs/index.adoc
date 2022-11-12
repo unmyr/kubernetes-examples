@@ -720,25 +720,6 @@ kubectl krew version
 kubectl krew install neat
 ----
 
-== kpack
-
-* https://buildpacks.io/docs/tools/kpack/[kpack · Cloud Native Buildpacks^]
-
-.Install
-. Download the most recent https://github.com/pivotal/kpack/releases[github release^]. The release.yaml is an asset on the release.
-+
-[source,shell]
-----
-kubectl apply -f https://github.com/pivotal/kpack/releases/download/v0.7.2/release-0.7.2.yaml
-----
-
-. Ensure that the kpack controller & webhook have a status of Running using kubectl get.
-+
-[source,shell]
-----
-kubectl get pods --namespace kpack --watch
-----
-
 == Tekton
 
 * https://buildpacks.io/docs/tools/tekton/[Tekton · Cloud Native Buildpacks^]
