@@ -123,6 +123,7 @@
         "tablename",
         "tableowner",
         "tablespace",
+        "Tanzu",
         "Tekton",
         "toclevels",
         "tolerations",

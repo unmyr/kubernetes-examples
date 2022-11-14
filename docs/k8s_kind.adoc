@@ -306,6 +306,91 @@ spec:
 .References
 * https://metallb.universe.tf/installation/[MetalLB, bare metal load-balancer for Kubernetes^]
 
+=== Install Ingress
+
+. Create Cluster +
+Create a kind cluster with extraPortMappings and node-labels.
++
+--
+[horizontal]
+extraPortMappings:: allow the local host to make requests to the Ingress controller over ports 80/443
+node-labels:: only allow the ingress controller to run on a specific node(s) matching the label selector
+--
++
+[source,shell]
+----
+#!/bin/bash
+cat <<EOF | kind create cluster --config=-
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+- role: control-plane
+  kubeadmConfigPatches:
+  - |
+    kind: InitConfiguration
+    nodeRegistration:
+      kubeletExtraArgs:
+        node-labels: "ingress-ready=true"
+  extraPortMappings:
+  - containerPort: 30000
+    hostPort: 30000
+    protocol: TCP
+  - containerPort: 30080
+    hostPort: 30080
+    protocol: TCP
+  - containerPort: 30081
+    hostPort: 30081
+    protocol: TCP
+EOF
+----
+
+. Install Contour
++
+[source,shell]
+----
+kubectl apply -f https://projectcontour.io/quickstart/contour.yaml
+----
+
+. Apply it by running:
++
+Apply kind specific patches to forward the hostPorts to the ingress controller, set taint tolerations and schedule it to the custom labelled node.
++
+[source,json]
+----
+{
+  "spec": {
+    "template": {
+      "spec": {
+        "nodeSelector": {
+          "ingress-ready": "true"
+        },
+        "tolerations": [
+          {
+            "key": "node-role.kubernetes.io/control-plane",
+            "operator": "Equal",
+            "effect": "NoSchedule"
+          },
+          {
+            "key": "node-role.kubernetes.io/master",
+            "operator": "Equal",
+            "effect": "NoSchedule"
+          }
+        ]
+      }
+    }
+  }
+}
+----
++
+[source,shell]
+----
+kubectl patch daemonsets -n projectcontour envoy -p '{"spec":{"template":{"spec":{"nodeSelector":{"ingress-ready":"true"},"tolerations":[{"key":"node-role.kubernetes.io/control-plane","operator":"Equal","effect":"NoSchedule"},{"key":"node-role.kubernetes.io/master","operator":"Equal","effect":"NoSchedule"}]}}}}'
+----
+
+.References
+* https://projectcontour.io/getting-started/[Getting Started with Contour^]
+* https://tanzu.vmware.com/developer/guides/service-routing-contour-to-ingress-and-beyond/[Getting Started with Contour - To Ingress and Beyond | VMware Tanzu Developer Center^]
+
 == Upgrade
 
 . Upgrade KIND
