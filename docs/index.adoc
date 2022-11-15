@@ -340,6 +340,110 @@ kubectl run -n default -it curl --image=curlimages/curl --rm --restart=Never -- 
 * https://stackoverflow.com/questions/50248525/is-there-a-way-to-put-kubernetes-secret-value-in-args-field-of-yaml-file[Is there a way to put Kubernetes secret value in args field of yaml file - Stack Overflow^] +
   kubernetes args valueFrom - Google 検索
 
+==== Using imagePullSecrets
+
+* Attach secrets to pods
++
+[source,yaml]
+----
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ${NAMESPACE}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ghcr-secret
+  namespace: ${NAMESPACE}
+type: kubernetes.io/dockerconfigjson
+stringData:
+  .dockerconfigjson: |
+    {
+      "auths": {
+        "https://ghcr.io": {
+          "username": "${GITHUB_USERNAME}",
+          "password": "${GITHUB_API_TOKEN}"
+        }
+      }
+    }
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ${SA_NAME}
+  namespace: ${NAMESPACE}
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: greet-go-pod
+  labels:
+    app: greet-go-app
+  namespace: ${NAMESPACE}
+spec:
+  serviceAccountName: ${SA_NAME}
+  containers:
+  - name: greet-go
+    image: ghcr.io/unmyr/greet-go:0.1
+    imagePullPolicy: IfNotPresent
+    ports:
+    - containerPort: 8080
+  imagePullSecrets:
+  - name: ghcr-secret
+----
+
+* Attach secrets to Service Account
++
+[source,yaml]
+----
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ${NAMESPACE}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ghcr-secret
+  namespace: ${NAMESPACE}
+type: kubernetes.io/dockerconfigjson
+stringData:
+  .dockerconfigjson: |
+    {
+      "auths": {
+        "https://ghcr.io": {
+          "username": "${GITHUB_USERNAME}",
+          "password": "${GITHUB_API_TOKEN}"
+        }
+      }
+    }
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ${SA_NAME}
+  namespace: ${NAMESPACE}
+imagePullSecrets:
+- name: ghcr-secret
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: greet-go-pod
+  labels:
+    app: greet-go-app
+  namespace: ${NAMESPACE}
+spec:
+  serviceAccountName: ${SA_NAME}
+  containers:
+  - name: greet-go
+    image: ghcr.io/unmyr/greet-go:0.1
+    imagePullPolicy: IfNotPresent
+    ports:
+    - containerPort: 8080
+----
+
 === ReplicaSets
 
 * ReplicaSetオブジェクトに関する情報を表示します:

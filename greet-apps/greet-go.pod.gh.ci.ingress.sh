@@ -66,8 +66,6 @@ spec:
     imagePullPolicy: IfNotPresent
     ports:
     - containerPort: 8080
-  imagePullSecrets:
-  - name: ghcr-secret
 ---
 apiVersion: v1
 kind: Service

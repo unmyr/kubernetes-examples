@@ -15,8 +15,8 @@ NAMESPACE="demo"
 SA_NAME="greet-go-sa"
 
 case $CMD in
-    apply)
-cat <<EOF | kubectl apply -f -
+apply)
+    cat <<EOF | kubectl apply -f -
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -44,8 +44,6 @@ kind: ServiceAccount
 metadata:
   name: ${SA_NAME}
   namespace: ${NAMESPACE}
-imagePullSecrets:
-- name: ghcr-secret
 ---
 apiVersion: v1
 kind: Pod
