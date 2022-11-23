@@ -780,6 +780,58 @@ $ kubectl get services --all-namespaces | grep 172.18.254
 default          go-hello-pod-metallb   LoadBalancer   10.96.17.114    172.18.254.240   8080:30161/TCP           22m
 ----
 
+=== Auth
+
+[source,shell]
+----
+kubectl auth can-i list pods
+----
+
+=== API
+
+* List API resources
++
+[source,shell]
+----
+kubectl api-resources
+----
+
+* Get API Server URI
++
+[source,shell]
+----
+kubectl config view -o jsonpath='{.clusters[0].cluster.server}'
+----
+
+* Get version
++
+[source,shell]
+----
+curl --insecure $(kubectl config view -o jsonpath='{.clusters[0].cluster.server}')/version
+----
+
+* Using client certificate
++
+[source,shell]
+----
+kubectl config view --minify --raw -o jsonpath='{.users[].user.client-certificate-data}' | base64 --decode > client.crt
+kubectl config view --minify --raw -o jsonpath='{.users[].user.client-key-data}' | base64 --decode > client.key
+----
+
+** List apis
++
+[source,shell]
+----
+curl --insecure --cert ./client.crt --key ./client.key $(kubectl config view -o jsonpath='{.clusters[0].cluster.server}')/apis
+----
+
+** List pod name
++
+[source,shell]
+----
+curl -s --insecure --cert ./client.crt --key ./client.key $(kubectl config view -o jsonpath='{.clusters[0].cluster.server}')/api/v1/namespaces/rbac-demo/pods | jq -r '.items[] | .metadata.name'
+----
+
 == krew
 
 === Install krew
