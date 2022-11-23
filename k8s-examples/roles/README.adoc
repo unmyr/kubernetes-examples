@@ -1,0 +1,81 @@
+=== sample-aggregated-clusterrole.yaml
+
+* Create role
++
+[source,shell]
+----
+kubectl apply -f sample-aggregated-clusterrole.yaml
+----
++
+[source,console]
+----
+$ kubectl apply -f sample-aggregated-clusterrole.yaml
+clusterrole.rbac.authorization.k8s.io/sub-clusterrole1 created
+clusterrole.rbac.authorization.k8s.io/sub-clusterrole2 created
+clusterrole.rbac.authorization.k8s.io/sample-aggregated-clusterrole created
+----
+
+* Show cluster role
++
+[source,shell]
+----
+kubectl get clusterrole sample-aggregated-clusterrole -o yaml | kubectl neat
+----
++
+[source,yaml]
+----
+aggregationRule:
+  clusterRoleSelectors:
+  - matchLabels:
+      app: sample-rbac
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: sample-aggregated-clusterrole
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  verbs:
+  - get
+- apiGroups:
+  - ""
+  resources:
+  - services
+  verbs:
+  - get
+----
+
+* Patch cluster role
++
+[source,console]
+----
+$ kubectl patch clusterrole sub-clusterrole1 --patch '{"rules": []}'
+clusterrole.rbac.authorization.k8s.io/sub-clusterrole1 patched
+----
++
+[source,shell]
+----
+kubectl get clusterrole sample-aggregated-clusterrole -o yaml | kubectl neat
+----
++
+[source,yaml]
+.Results
+----
+aggregationRule:
+  clusterRoleSelectors:
+  - matchLabels:
+      app: sample-rbac
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: sample-aggregated-clusterrole
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - services
+  verbs:
+  - get
+----

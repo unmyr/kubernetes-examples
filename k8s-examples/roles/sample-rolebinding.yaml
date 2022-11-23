@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: rbac-demo
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: sample-role
+  namespace: rbac-demo
+rules:
+- apiGroups:
+  - apps
+  - extensions
+  resources:
+  - replicasets
+  - deployments
+  - deployments/scale
+  verbs:
+  - "*"
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sample-serviceaccount
+  namespace: rbac-demo
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: sample-rolebinding
+  namespace: rbac-demo
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: sample-role
+subjects:
+- kind: ServiceAccount
+  name: sample-serviceaccount
+  namespace: rbac-demo
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sample-kubectl
+  namespace: rbac-demo
+spec:
+  serviceAccountName: sample-serviceaccount
+  containers:
+  - name: kubectl-container
+    image: lachlanevenson/k8s-kubectl:v1.25.0
+    command: ["sleep", "86400"]
