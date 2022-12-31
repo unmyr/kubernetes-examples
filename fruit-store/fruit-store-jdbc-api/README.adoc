@@ -1,0 +1,64 @@
+
+== Example of SpringBoot
+
+. Using https://start.spring.io/[spring initializr^]
++
+--
+[horizontal]
+Group:: com.example
+Artifact:: fruit-store-jdbc-api
+Name:: fruit-store
+Description:: Demo project for Spring Boot
+Package name:: com.example
+--
++
+Add Dependencies for `Spring Web`, `Spring Data JDBC`, `PostgreSQL Driver`, `H2 Database`, `Spring Boot DevTools` and `Spring Boot Actuator`
+
+. Creating a new project, and go to the projects directory.
++
+[source,shell]
+----
+unzip fruit-store-jdbc-api.zip
+cd fruit-store-jdbc-api
+----
+
+. Run server
++
+[source,shell]
+----
+./mvnw spring-boot:run
+----
+
+. Send request
++
+[source,shell]
+----
+curl -s http://localhost:8080/api/ | python3 -m json.tool
+----
++
+[source,json]
+----
+[
+    {
+        "id": 1,
+        "name": "Apple",
+        "price": 100,
+        "quantity": 0,
+        "modTime": "2022-12-31T04:46:43.913+00:00"
+    },
+    {
+        "id": 2,
+        "name": "Banana",
+        "price": 120,
+        "quantity": 0,
+        "modTime": "2022-12-31T04:46:43.913+00:00"
+    },
+    {
+        "id": 3,
+        "name": "Orange",
+        "price": 110,
+        "quantity": 0,
+        "modTime": "2022-12-31T04:46:43.913+00:00"
+    }
+]
+----
