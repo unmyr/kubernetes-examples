@@ -60,3 +60,12 @@ sql:
 	psql -h $(TARGET_HOST) -U $(DB_USER_NAME) -d fruits -c "UPDATE $(SCHEMA_NAME).fruits_menu SET price = 112 WHERE name = 'Orange';"
 	@echo -n "+ "
 	psql -h $(TARGET_HOST) -U $(DB_USER_NAME) -d fruits -c "DELETE FROM $(SCHEMA_NAME).fruits_menu WHERE name = 'Peach';"
+
+sql-ro:
+	$(eval TARGET_HOST := $(shell kubectl -n $(NAMESPACE) get services postgres-service -o jsonpath='{.status.loadBalancer.ingress[*].ip}'))
+	@echo -n "+ "
+	psql -h $(TARGET_HOST) -U $(DB_USER_NAME) -d fruits -c "SHOW search_path;"
+	@echo -n "+ "
+	psql -h $(TARGET_HOST) -U $(DB_USER_NAME) -d fruits -c "SELECT * FROM fruits_menu;"
+	@echo -n "+ "
+	psql -h $(TARGET_HOST) -U $(DB_USER_NAME) -d fruits -c "SELECT * FROM $(SCHEMA_NAME).fruits_menu;"

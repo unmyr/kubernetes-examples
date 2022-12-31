@@ -4,14 +4,19 @@ SCRIPT_DIR=$(dirname ${SCRIPT_PATH_IN})
 
 usage() {
   cat 1>&2 <<EOF
-Usage: $0 {create|delete}
+Usage: $0 {create|delete|show}
 EOF
 }
+
+KIND_CLUSTER_NAME="kind-1"
+PV_NAME="postgres-data-pv"
 
 CMD=$1
 case $1 in
 create)
-    cat <<EOF | kind create cluster --config=-
+    MOUNT_POINT="/tmp/kind-1-postgres-data"
+    mkdir -p ${MOUNT_POINT}
+    cat <<EOF | kind create cluster --name ${KIND_CLUSTER_NAME} --config=-
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
@@ -32,13 +37,50 @@ nodes:
   - containerPort: 30081
     hostPort: 30081
     protocol: TCP
+  extraMounts:
+  - hostPath: ${MOUNT_POINT}
+    containerPath: ${MOUNT_POINT}
 EOF
     set -x
+
+    KUBE_NODENAME="${KIND_CLUSTER_NAME}-control-plane"
+    kubectl apply -f <<EOF
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: ${PV_NAME}
+spec:
+  capacity:
+    storage: 512Mi
+  volumeMode: Filesystem
+  accessModes:
+  - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Delete
+  storageClassName: ""
+  local:
+    path: ${MOUNT_POINT}
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+            - ${KUBE_NODENAME}
+EOF
     kubectl apply -f https://projectcontour.io/quickstart/contour.yaml
     kubectl patch daemonsets -n projectcontour envoy -p '{"spec":{"template":{"spec":{"nodeSelector":{"ingress-ready":"true"},"tolerations":[{"key":"node-role.kubernetes.io/control-plane","operator":"Equal","effect":"NoSchedule"},{"key":"node-role.kubernetes.io/master","operator":"Equal","effect":"NoSchedule"}]}}}}'
 
     : Install MetalLb
     kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.7/config/manifests/metallb-native.yaml
+    while true; do
+        if [ -n "$(kubectl get pods -n metallb-system 2> /dev/null)" ]; then
+            break
+        fi
+        sleep 1
+    done
+    kubectl wait pods -n metallb-system -l component=controller --for condition=Ready --timeout=90s
+    kubectl wait pods -n metallb-system -l component=speaker --for condition=Ready --timeout=90s
     kubectl apply -f ${SCRIPT_DIR}/metallb-IPAddressPool.yaml
 
     : Install metrics-server
@@ -48,7 +90,13 @@ EOF
     ;;
 
 delete)
-    (set -x; kind delete cluster --name kind)
+    (set -x; kubectl delete persistentvolume ${PV_NAME})
+    (set -x; kind delete cluster --name ${KIND_CLUSTER_NAME})
+    ;;
+
+show)
+    (set -x; kind get clusters)
+    (set -x; kubectl get nodes)
     ;;
 
 *)
