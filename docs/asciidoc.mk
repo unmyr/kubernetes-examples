@@ -1,4 +1,4 @@
-IMAGES_DIR=images
+IMAGES_DIR?=images
 CP_OPTS=-n -l
 ROUGE_STYLE=monokai_sublime
 
