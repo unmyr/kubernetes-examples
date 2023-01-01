@@ -283,9 +283,23 @@ $ kubectl delete deployment go-hello-app
 
 * Get all pods
 +
-[source,console]
+[source,shell]
 ----
 kubectl get pods --all-namespaces
+----
+
+* Get labels
++
+[source,shell]
+----
+kubectl get pods pod_name -o jsonpath="{.metadata.labels}" | python3 -m json.tool
+----
+
+* Wait pods
++
+[source,shell]
+----
+kubectl wait pods -n metallb-system -l component=controller --for condition=Ready --timeout=90s
 ----
 
 * Get Pod IP's
@@ -831,6 +845,29 @@ curl --insecure --cert ./client.crt --key ./client.key $(kubectl config view -o 
 ----
 curl -s --insecure --cert ./client.crt --key ./client.key $(kubectl config view -o jsonpath='{.clusters[0].cluster.server}')/api/v1/namespaces/rbac-demo/pods | jq -r '.items[] | .metadata.name'
 ----
+
+== Service Binding
+
+.Setup Service Binding
+. Install `cert-manager`
++
+[source,shell]
+----
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.10.1/cert-manager.yaml
+----
++
+.References
+* https://cert-manager.io/docs/installation/[Installation - cert-manager Documentation^]
+
+. To install the Service Binding Runtime with kubectl, run:
++
+[source,shell]
+----
+kubectl apply -f https://github.com/servicebinding/runtime/releases/download/v0.2.0/servicebinding-runtime-v0.2.0.yaml
+----
++
+.References
+* https://github.com/servicebinding/runtime/releases[Releases · servicebinding/runtime^]
 
 == krew
 

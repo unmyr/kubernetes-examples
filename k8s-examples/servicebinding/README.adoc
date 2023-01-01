@@ -1,0 +1,95 @@
+=== Setup environment
+
+* Create a .env file
++
+[source,shell]
+..env
+----
+PGPASSWORD="..."
+----
+
+=== Apply
+
+[source,shell]
+----
+kubectl apply -f service-binding.yaml -f workload.yaml
+----
+
+[source,console]
+----
+$ kubectl apply -f service-binding.yaml -f workload.yaml
+servicebinding.servicebinding.io/postgres-client-sb created
+secret/postgres-client-sb created
+deployment.apps/postgres-client-sb created
+----
+
+=== Delete
+
+[source,shell]
+----
+kubectl delete -f service-binding.yaml -f workload.yaml
+----
+
+=== Inside container
+
+[source,console]
+----
+$ kubectl exec -it deployment.apps/postgres-client-sb -- /bin/bash
+...
+# echo $SERVICE_BINDING_ROOT
+/bindings
+# ls -1 $SERVICE_BINDING_ROOT/postgres-client-sb
+database
+host
+password
+port
+type
+username
+# env | grep PG
+PGPORT=5432
+PGPASSWORD=...
+PG_SHA256=...
+PGUSER=db_user1
+PG_MAJOR=14
+PG_VERSION=14.6
+PGDATABASE=fruits
+PGHOST=postgres-service.postgres.svc.cluster.local
+PGDATA=/var/lib/postgresql/data
+# psql
+psql (14.6)
+Type "help" for help.
+
+fruits=> SELECT * FROM fruits_menu;
+ id |  name  | price | quantity |          mod_time
+----+--------+-------+----------+----------------------------
+  1 | Apple  |   100 |       10 | 2022-12-31 13:46:43.913473
+  2 | Banana |   120 |        1 | 2022-12-31 13:46:43.913473
+  3 | Orange |   110 |        0 | 2022-12-31 13:46:43.913473
+(3 rows)
+
+fruits=> ^D\q
+----
+
+=== Execute
+
+[source,shell]
+----
+kubectl exec -it deployment.apps/postgres-client-sb -- bash -c "echo 'SELECT * FROM fruits_menu;' | psql"
+----
+
+[source,console]
+----
+$ kubectl exec -it deployment.apps/postgres-client-sb -- bash -c "echo 'SELECT * FROM fruits_menu;' | psql"
+ id |  name  | price | quantity |          mod_time
+----+--------+-------+----------+----------------------------
+  1 | Apple  |   100 |       10 | 2022-12-31 13:46:43.913473
+  2 | Banana |   120 |        1 | 2022-12-31 13:46:43.913473
+  3 | Orange |   110 |        0 | 2022-12-31 13:46:43.913473
+(3 rows)
+----
+
+=== References
+
+* https://github.com/servicebinding/runtime[servicebinding/runtime: The reference implementation of the Kubernetes Service Binding Specification^]
+* https://servicebinding.io/[Service Binding for Kubernetes | Bind Services to Kubernetes Workloads^]
+** https://servicebinding.io/service-provider/[Service Binding for Kubernetes | Bind Services to Kubernetes Workloads^]

@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-client-sb
+  labels:
+    app: postgres-client-sb
+spec:
+  selector:
+    matchLabels:
+      app: postgres-client-sb
+  template:
+    metadata:
+      labels:
+        app: postgres-client-sb
+    spec:
+      containers:
+      - image: postgres:14-alpine
+        name: postgres
+        env:
+        - name: POSTGRES_PASSWORD
+          value: postgres

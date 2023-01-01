@@ -87,6 +87,22 @@ EOF
     # https://gist.github.com/sanketsudake/a089e691286bf2189bfedf295222bd43
     kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
     kubectl patch -n kube-system deployment metrics-server --type=json -p '[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--kubelet-insecure-tls"}]'
+
+    : Install cert-manager
+    (set -x; kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.10.1/cert-manager.yaml)
+    while true; do
+        if [ -n "$(kubectl get pods -n cert-manager -l app.kubernetes.io/component=webhook 2> /dev/null)" ]; then
+            break
+        fi
+        sleep 1
+    done
+    (set -x; kubectl wait pods -n cert-manager -l app.kubernetes.io/component=webhook --for condition=Ready --timeout=90s)
+    (set -x; kubectl get deployment.apps -n cert-manager)
+    (set -x; kubectl get pods -n cert-manager)
+    (set -x; kubectl rollout status deployment -n cert-manager -l component=controller --timeout=90s)
+    (set -x; kubectl rollout status deployment -n cert-manager -l component=webhook --timeout=90s)
+    : Install Service Binding
+    (set -x; kubectl apply -f https://github.com/servicebinding/runtime/releases/download/v0.2.0/servicebinding-runtime-v0.2.0.yaml)
     ;;
 
 delete)
@@ -97,6 +113,7 @@ delete)
 show)
     (set -x; kind get clusters)
     (set -x; kubectl get nodes)
+    (set -x; kubectl cluster-info --context kind-${KIND_CLUSTER_NAME})
     ;;
 
 *)

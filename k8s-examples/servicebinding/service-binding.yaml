@@ -1,0 +1,24 @@
+apiVersion: servicebinding.io/v1beta1
+kind: ServiceBinding
+metadata:
+  name: postgres-client-sb
+spec:
+  service:
+    apiVersion: v1
+    kind: Secret
+    name: postgres-client-sb
+  workload:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: postgres-client-sb
+  env: # []EnvMapping, optional
+  - name: PGUSER
+    key: username
+  - name: PGPASSWORD
+    key: password
+  - name: PGDATABASE
+    key: database
+  - name: PGHOST
+    key: host
+  - name: PGPORT
+    key: port
