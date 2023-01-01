@@ -1,4 +1,13 @@
 {
+    "[shellscript]": {
+        "editor.tabSize": 4,
+        "editor.insertSpaces": true
+    },
+    "[java]": {
+        "editor.tabSize": 4,
+        "editor.insertSpaces": false
+    },
+    "java.compile.nullAnalysis.mode": "automatic",
     "cSpell.words": [
         "aarch",
         "actix",
@@ -55,12 +64,14 @@
         "importlib",
         "inet",
         "initdb",
+        "initializr",
         "ipaddresspool",
         "ipaddresspools",
         "IPAM",
         "ipip",
         "isready",
         "itsdangerous",
+        "JDBC",
         "jsonify",
         "jsonpath",
         "kindnet",
@@ -87,6 +98,7 @@
         "mkdir",
         "mktemp",
         "mountpoint",
+        "mvnw",
         "napt",
         "netnsid",
         "NOARP",
