@@ -1,0 +1,74 @@
+apiVersion: servicebinding.io/v1beta1
+kind: ServiceBinding
+metadata:
+  name: service-bindings-demo-sb
+spec:
+  service:
+    apiVersion: v1
+    kind: Secret
+    name: service-bindings-demo-secrets
+  workload:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: service-bindings-demo-dep
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: service-bindings-demo-secrets
+type: servicebinding.io/custom
+stringData:
+  type: custom
+  private-key: |
+    -----BEGIN PRIVATE KEY-----
+    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
+    D+aLx5/YprhzCkl0IVM5Q68P+17tlg==
+    -----END PRIVATE KEY-----

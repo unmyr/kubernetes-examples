@@ -1,0 +1,178 @@
+
+== Example of SpringBoot
+
+
+=== Generate source
+
+. Using https://start.spring.io/[spring initializr^]
++
+--
+[horizontal]
+Group:: com.example
+Artifact:: service-bindings-demo
+Name:: demo
+Description:: Demo project for Spring Cloud Bindings
+Package name:: com.example
+--
++
+Add Dependencies for `Spring Web`, `Spring Boot DevTools` and `Spring Boot Actuator`
+
+. Creating a new project, and go to the projects directory.
++
+[source,shell]
+----
+unzip service-bindings-demo.zip
+cd service-bindings-demo
+----
+
+=== Run in localhost
+
+. Run server
++
+[source,shell]
+----
+./mvnw spring-boot:run
+----
+
+. Send request
++
+[source,shell]
+----
+curl -s http://localhost:8080/ | python3 -m json.tool
+----
++
+[source,json]
+----
+{
+    "private-key": "nil"
+}
+----
+
+
+
+=== Build docker image
+
+. Start the docker service (if not running)
++
+[source,console]
+----
+$ sudo service docker start
+----
+
+. Build a docker image
++
+[source,console]
+----
+$ ./mvnw spring-boot:build-image
+...
+[INFO] Successfully built image 'docker.io/library/service-bindings-demo:0.0.1'
+...
+----
++
+[source,console]
+----
+$ docker image ls
+REPOSITORY                 TAG               IMAGE ID       CREATED        SIZE
+paketobuildpacks/run       base-cnb          e06d1d37657c   2 weeks ago    87MB
+...
+service-bindings-demo      0.0.1             364fc9231e08   43 years ago   277MB
+paketobuildpacks/builder   base              6b5f3b73c356   43 years ago   1.2GB
+...
+----
+
+
+=== Deploy to k8s
+
+. Push to KIND
++
+[source,console]
+----
+$ kind --name kind-1 load docker-image service-bindings-demo:0.0.1
+Image: "" with ID "sha256:****************************************************************" not yet present on node "kind-1-control-plane", loading...
+----
++
+[source,console]
+----
+$ docker exec -it kind-1-control-plane crictl images | grep -E 'IMAGE ID|service-bindings-demo'
+IMAGE                                      TAG                  IMAGE ID            SIZE
+docker.io/library/service-bindings-demo    0.0.1                364fc9231e089       281MB
+----
+
+. Deploy
++
+[source,console]
+----
+$ kubectl apply -f service-binding.yaml -f workload.yaml
+servicebinding.servicebinding.io/service-bindings-demo-sb created
+secret/service-bindings-demo-secrets created
+deployment.apps/service-bindings-demo-dep created
+service/service-bindings-demo-service created
+$ kubectl get service service-bindings-demo-service
+NAME                            TYPE           CLUSTER-IP      EXTERNAL-IP      PORT(S)          AGE
+service-bindings-demo-service   LoadBalancer   10.96.104.216   172.18.254.242   8080:30805/TCP   38s
+$ kubectl get pods -l app=service-bindings-demo
+NAME                                         READY   STATUS    RESTARTS   AGE
+service-bindings-demo-dep-6bbb4c5789-xxxxx   1/1     Running   0          68s
+$ kubectl logs service-bindings-demo-dep-8f65b777f-xxxxx
+...
+$ kubectl get pods -l app=service-bindings-demo --output=jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' | while read POD_NAME; do (set -x; kubectl logs ${POD_NAME}); done
++ kubectl logs service-bindings-demo-dep-6bbb4c5789-sr7rv
+Setting Active Processor Count to 4
+Calculating JVM memory based on 2631980K available memory
+For more information on this calculation, see https://paketo.io/docs/reference/java-reference/#memory-calculator
+Calculated JVM Memory Configuration: -XX:MaxDirectMemorySize=10M -Xmx2246707K -XX:MaxMetaspaceSize=78072K -XX:ReservedCodeCacheSize=240M -Xss1M (Total Memory: 2631980K, Thread Count: 50, Loaded Class Count: 11370, Headroom: 0%)
+Enabling Java Native Memory Tracking
+Adding 124 container CA certificates to JVM truststore
+Spring Cloud Bindings Enabled
+Picked up JAVA_TOOL_OPTIONS: -Djava.security.properties=/layers/paketo-buildpacks_bellsoft-liberica/java-security-properties/java-security.properties -XX:+ExitOnOutOfMemoryError -XX:ActiveProcessorCount=4 -XX:MaxDirectMemorySize=10M -Xmx2246707K -XX:MaxMetaspaceSize=78072K -XX:ReservedCodeCacheSize=240M -Xss1M -XX:+UnlockDiagnosticVMOptions -XX:NativeMemoryTracking=summary -XX:+PrintNMTStatistics -Dorg.springframework.cloud.bindings.boot.enable=true
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::                (v3.0.1)
+
+2023-01-02T17:43:56.294Z  INFO 1 --- [           main] com.example.DemoApplication              : Starting DemoApplication v0.0.1 using Java 17.0.5 with PID 1 (/workspace/BOOT-INF/classes started by cnb in /workspace)
+2023-01-02T17:43:56.391Z  INFO 1 --- [           main] com.example.DemoApplication              : No active profile set, falling back to 1 default profile: "default"
+2023-01-02T17:44:08.806Z  INFO 1 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 8080 (http)
+2023-01-02T17:44:08.826Z  INFO 1 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2023-01-02T17:44:08.826Z  INFO 1 --- [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.4]
+2023-01-02T17:44:09.030Z  INFO 1 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2023-01-02T17:44:09.037Z  INFO 1 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 9593 ms
+2023-01-02T17:44:24.024Z  INFO 1 --- [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 1 endpoint(s) beneath base path '/actuator'
+2023-01-02T17:44:24.555Z  INFO 1 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8080 (http) with context path ''
+2023-01-02T17:44:25.324Z  INFO 1 --- [           main] com.example.DemoApplication              : Started DemoApplication in 36.69 seconds (process running for 37.651)
+----
+
+. Test
++
+[source,console]
+----
+$ curl -s http://172.18.254.242:8080/ | python3 -m json.tool
+{
+    "private-key": "-----BEGIN PRIVATE KEY-----\n...snip...==\n-----END PRIVATE KEY-----"
+}
+----
+
+. Remove apps
++
+[source,console]
+----
+$ kubectl delete -f service-binding.yaml -f workload.yaml
+servicebinding.servicebinding.io "service-bindings-demo-sb" deleted
+secret "service-bindings-demo-secrets" deleted
+deployment.apps "service-bindings-demo-dep" deleted
+service "service-bindings-demo-service" deleted
+----
+
+. Remove docker image from KIND
++
+[source,console]
+----
+$ docker exec -it kind-1-control-plane crictl images | grep -E 'IMAGE ID|docker.io/library/service-bindings-demo'
+...
+$ docker exec kind-1-control-plane crictl images | grep -E 'docker.io/library/service-bindings-demo' | awk '{print $3}' | xargs --no-run-if-empty docker exec kind-1-control-plane crictl rmi
+Deleted: docker.io/library/service-bindings-demo:0.0.1
+----

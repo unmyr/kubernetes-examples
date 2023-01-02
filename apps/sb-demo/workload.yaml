@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: service-bindings-demo-dep
+  labels:
+    app: service-bindings-demo
+spec:
+  selector:
+    matchLabels:
+      app: service-bindings-demo
+  template:
+    metadata:
+      labels:
+        app: service-bindings-demo
+    spec:
+      containers:
+      - image: service-bindings-demo:0.0.1
+        name: service-bindings-demo
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-bindings-demo-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: service-bindings-demo
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
