@@ -1,7 +1,7 @@
 #!/bin/bash
 usage() {
-	cat 1>&2 <<EOF
-usage: $0 {apply|delete|show}
+    cat 1>&2 <<EOF
+usage: $0 {apply|delete|show|exec}
 EOF
 }
 
@@ -33,19 +33,20 @@ EOF
 delete)
     set -x
     kubectl delete -f workload.yaml
-	kubectl delete secret ${SECRET_NAME}
+    kubectl delete secret ${SECRET_NAME}
     kubectl delete -f service-binding.yaml
     ;;
 
 show)
     set -x
-	kubectl get servicebinding postgres-client-sb
+    kubectl get servicebinding postgres-client-sb
     kubectl get secrets --field-selector="type=servicebinding.io/postgresql"
-	kubectl get all -l app=postgres-client-sb
+    kubectl get all -l app=postgres-client-sb
+    kubectl describe servicebinding/postgres-client-sb
     ;;
 
 exec)
-	kubectl exec -it deployment.apps/postgres-client-sb -- bash -c "echo 'SELECT * FROM fruits_menu;' | psql"
+    kubectl exec -it deployment.apps/postgres-client-sb -- bash -c "echo 'SELECT * FROM fruits_menu;' | psql"
     ;;
 
 *)
