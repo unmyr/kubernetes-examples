@@ -241,7 +241,7 @@ $ docker compose down
 [source,console]
 ----
 $ kind --name kind-1 load docker-image fruit-store-jdbc-api:0.0.1
-Image: "greet-java:0.1" with ID "sha256:****************************************************************" not yet present on node "kind-1-control-plane", loading...
+Image: "" with ID "sha256:****************************************************************" not yet present on node "kind-1-control-plane", loading...
 ----
 +
 [source,console]
