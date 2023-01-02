@@ -1,6 +1,9 @@
 
 == Example of SpringBoot
 
+
+=== Generate source
+
 . Using https://start.spring.io/[spring initializr^]
 +
 --
@@ -20,6 +23,19 @@ Add Dependencies for `Spring Web`, `Spring Data JDBC`, `PostgreSQL Driver`, `H2 
 ----
 unzip fruit-store-jdbc-api.zip
 cd fruit-store-jdbc-api
+----
+
+=== Run in localhost
+
+. Create `src/main/resources/application.properties`
++
+[source,plaintext]
+.src/main/resources/application.properties (example)
+----
+spring.datasource.driver-class-name=org.postgresql.Driver
+spring.datasource.url=jdbc:postgresql://172.18.254.241:5432/fruits
+spring.datasource.username=db_user1
+spring.datasource.password=password
 ----
 
 . Run server
