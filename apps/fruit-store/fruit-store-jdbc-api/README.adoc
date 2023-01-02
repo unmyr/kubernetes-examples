@@ -232,3 +232,113 @@ $ docker compose down
  ⠿ Container postgres-fruit-store  Removed                 1.6s
  ⠿ Network fruit-store-net         Removed                 1.4s
 ----
+
+
+=== Deploy to k8s
+
+. Push to KIND
++
+[source,console]
+----
+$ kind --name kind-1 load docker-image fruit-store-jdbc-api:0.0.1
+Image: "greet-java:0.1" with ID "sha256:****************************************************************" not yet present on node "kind-1-control-plane", loading...
+----
++
+[source,console]
+----
+$ docker exec -it kind-1-control-plane crictl images | grep -E 'IMAGE ID|fruit-store-jdbc-api'
+IMAGE                                      TAG                  IMAGE ID            SIZE
+docker.io/library/fruit-store-jdbc-api     0.0.1                8904465c24226       288MB
+----
+
+. Deploy
++
+[source,console]
+----
+$ kubectl apply -f fruit-store-jdbc-api.yaml
+servicebinding.servicebinding.io/fruit-store-jdbc-api-sb created
+deployment.apps/fruit-store-jdbc-api-dep created
+service/fruit-store-jdbc-api-service created
+$ kubectl get service fruit-store-jdbc-api-service
+NAME                           TYPE           CLUSTER-IP      EXTERNAL-IP      PORT(S)          AGE
+fruit-store-jdbc-api-service   LoadBalancer   10.96.138.225   172.18.254.242   3000:30952/TCP   97s
+$ kubectl get pods -l app=fruit-store-jdbc-api
+NAME                                       READY   STATUS    RESTARTS   AGE
+fruit-store-jdbc-api-dep-8f65b777f-xxxxx   1/1     Running   0          2m36s
+$ kubectl logs fruit-store-jdbc-api-dep-8f65b777f-xxxxx
+...
+----
+
+. Test
++
+[source,console]
+----
+$ curl -s http://172.18.254.242:3000/api/ | python3 -m json.tool
+[
+    {
+        "id": 1,
+        "name": "Apple",
+        "price": 100,
+        "quantity": 0,
+        "modTime": "2022-12-31T13:46:43.913+00:00"
+    },
+    {
+        "id": 2,
+        "name": "Banana",
+        "price": 120,
+        "quantity": 0,
+        "modTime": "2022-12-31T13:46:43.913+00:00"
+    },
+    {
+        "id": 3,
+        "name": "Orange",
+        "price": 110,
+        "quantity": 0,
+        "modTime": "2022-12-31T13:46:43.913+00:00"
+    }
+]
+$ curl -s http://$(kubectl get services fruit-store-jdbc-api-service -o jsonpath='{.status.loadBalancer.ingress[*].ip}'):$(kubectl get services fruit-store-jdbc-api-service -o jsonpath='{.spec.ports[0].port}')/api/ --header "Content-Type: application/json" | python3 -m json.tool
+[
+    {
+        "id": 1,
+        "name": "Apple",
+        "price": 100,
+        "quantity": 0,
+        "modTime": "2022-12-31T13:46:43.913+00:00"
+    },
+    {
+        "id": 2,
+        "name": "Banana",
+        "price": 120,
+        "quantity": 0,
+        "modTime": "2022-12-31T13:46:43.913+00:00"
+    },
+    {
+        "id": 3,
+        "name": "Orange",
+        "price": 110,
+        "quantity": 0,
+        "modTime": "2022-12-31T13:46:43.913+00:00"
+    }
+]
+----
+
+. Remove apps
++
+[source,console]
+----
+$ kubectl delete -f fruit-store-jdbc-api.yaml
+servicebinding.servicebinding.io "fruit-store-jdbc-api-sb" deleted
+deployment.apps "fruit-store-jdbc-api-dep" deleted
+service "fruit-store-jdbc-api-service" deleted
+----
+
+. Remove docker image from KIND
++
+[source,console]
+----
+$ docker exec -it kind-1-control-plane crictl images | grep -E 'IMAGE ID|docker.io/library/fruit-store-jdbc-api'
+...
+$ docker exec kind-1-control-plane crictl images | grep -E 'docker.io/library/fruit-store-jdbc-api' | awk '{print $3}' | xargs --no-run-if-empty docker exec kind-1-control-plane crictl rmi
+Deleted: docker.io/library/fruit-store-jdbc-api:0.0.1
+----
