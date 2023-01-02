@@ -1,0 +1,46 @@
+version: "3.7"
+
+services:
+  postgres:
+    restart: always
+    image: postgres:14-alpine
+    container_name: postgres-fruit-store
+    ports:
+      - 5432:5432
+    env_file: .env.docker-compose.postgres
+    volumes:
+      - type: bind
+        source: "./initdb.d"
+        target: "/docker-entrypoint-initdb.d"
+      - /var/tmp/postgres-fruit-store/data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d fruits -U db_user1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      fruit-store-net:
+        ipv4_address: 192.168.120.2
+  app:
+    image: fruit-store-jdbc-api:0.0.1
+    container_name: fruit-store-jdbc-api
+    ports:
+      - 8080:8080
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      fruit-store-net:
+        ipv4_address: 192.168.120.3
+    env_file: .env.docker-compose.app
+networks:
+  fruit-store-net:
+    name: fruit-store-net
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: "fruit-store-net"
+    ipam:
+      driver: default
+      config:
+        - subnet: 192.168.120.0/29

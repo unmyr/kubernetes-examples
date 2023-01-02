@@ -27,15 +27,22 @@ cd fruit-store-jdbc-api
 
 === Run in localhost
 
-. Create `src/main/resources/application.properties`
+. Create `.env.local`
 +
-[source,plaintext]
-.src/main/resources/application.properties (example)
+[source,shell]
+..env.local (example)
 ----
-spring.datasource.driver-class-name=org.postgresql.Driver
-spring.datasource.url=jdbc:postgresql://172.18.254.241:5432/fruits
-spring.datasource.username=db_user1
-spring.datasource.password=password
+PGHOST=172.18.254.241
+PGPORT=5432
+PGUSER=db_user1
+PGPASSWORD=password
+----
+
+. Set environment
++
+[source,shell]
+----
+. .env.local
 ----
 
 . Run server
@@ -77,4 +84,151 @@ curl -s http://localhost:8080/api/ | python3 -m json.tool
         "modTime": "2022-12-31T04:46:43.913+00:00"
     }
 ]
+----
+
+
+=== Build docker image
+
+. Start the docker service (if not running)
++
+[source,console]
+----
+$ sudo service docker start
+----
+
+. Build a docker image
++
+[source,console]
+----
+$ ./mvnw spring-boot:build-image
+...
+[INFO] Successfully built image 'docker.io/library/fruit-store-jdbc-api:0.0.1-SNAPSHOT'
+...
+----
++
+[source,console]
+----
+$ docker image ls
+REPOSITORY                 TAG               IMAGE ID       CREATED        SIZE
+paketobuildpacks/run       base-cnb          e06d1d37657c   2 weeks ago    87MB
+...
+fruit-store-jdbc-api       0.0.1             fb2e0b434db1   43 years ago   283MB
+paketobuildpacks/builder   base              6b5f3b73c356   43 years ago   1.2GB
+----
+
+=== Test docker image
+
+. Create `.env.docker-compose.postgres`
++
+--
+[horizontal]
+POSTGRES_USER:: management user
+POSTGRES_PASSWORD:: password for management user
+ADDITIONAL_USER:: additional db user name
+ADDITIONAL_PASSWORD:: additional db user password
+--
++
+[source,shell]
+..env.docker-compose.app (example)
+----
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+ADDITIONAL_USER=db_user1
+ADDITIONAL_PASSWORD=password
+----
+
+. Create `.env.docker-compose.app`
++
+--
+[horizontal]
+PGHOST:: container name of postgresql server.
+PGPORT:: postgresql server port
+PGUSER:: your db user name
+PGPASSWORD:: your db password
+--
++
+[source,shell]
+..env.docker-compose.app (example)
+----
+PGHOST=postgres-fruit-store
+PGPORT=5432
+PGUSER=db_user1
+PGPASSWORD=password
+----
+
+. Clean database data directory
++
+[source,console]
+----
+sudo rm -fR /var/tmp/postgres-fruit-store
+mkdir -p /var/tmp/postgres-fruit-store/data
+----
+
+. Start docker container
++
+[source,console]
+----
+$ docker compose version
+Docker Compose version v2.14.1
+$ docker compose up -d
+[+] Running 3/3
+ ⠿ Network fruit-store-net         Created                 0.8s
+ ⠿ Container postgres-fruit-store  Healthy                12.6s
+ ⠿ Container fruit-store-jdbc-api  Started                13.8s
+$ docker network ls
+NETWORK ID     NAME              DRIVER    SCOPE
+...
+64ef6dfe06a4   fruit-store-net   bridge    local
+...
+$ docker compose restart app
+----
++
+[source,console]
+.debug
+----
+$ docker logs postgres-fruit-store
+...
+$ docker logs fruit-store-jdbc-api
+...
+----
+
+. Request to docker container
++
+[source,console]
+----
+$ curl -s http://192.168.120.3:8080/api/ | python3 -m json.tool
+[
+    {
+        "id": 1,
+        "name": "Apple",
+        "price": 100,
+        "quantity": 0,
+        "modTime": "2023-01-02T14:46:51.967+00:00"
+    },
+    {
+        "id": 2,
+        "name": "Banana",
+        "price": 120,
+        "quantity": 0,
+        "modTime": "2023-01-02T14:46:51.967+00:00"
+    },
+    {
+        "id": 3,
+        "name": "Orange",
+        "price": 110,
+        "quantity": 0,
+        "modTime": "2023-01-02T14:46:51.967+00:00"
+    }
+]
+----
+
+. Stop and remove docker container
++
+[source,console]
+----
+$ docker compose down
+[+] Running 3/3
+ ⠿ Container fruit-store-jdbc-api  Removed                 0.8s
+ ⠿ Container postgres-fruit-store  Removed                 1.6s
+ ⠿ Network fruit-store-net         Removed                 1.4s
 ----
