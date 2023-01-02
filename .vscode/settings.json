@@ -60,6 +60,7 @@
         "hasrules",
         "hastriggers",
         "healthz",
+        "Hikari",
         "Iface",
         "ifdef",
         "ifndef",
@@ -161,6 +162,7 @@
         "WORKDIR",
         "WSGI",
         "Wtype",
+        "zaxxer",
         "zipp",
         "zxvf"
     ]

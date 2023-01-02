@@ -11,17 +11,6 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: fruit-store-jdbc-api-dep
-  env: # []EnvMapping, optional
-  - name: PGUSER
-    key: username
-  - name: PGPASSWORD
-    key: password
-  - name: PGDATABASE
-    key: database
-  - name: PGHOST
-    key: host
-  - name: PGPORT
-    key: port
 ---
 apiVersion: apps/v1
 kind: Deployment

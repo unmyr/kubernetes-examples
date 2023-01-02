@@ -267,6 +267,40 @@ NAME                                       READY   STATUS    RESTARTS   AGE
 fruit-store-jdbc-api-dep-8f65b777f-xxxxx   1/1     Running   0          2m36s
 $ kubectl logs fruit-store-jdbc-api-dep-8f65b777f-xxxxx
 ...
+$ kubectl get pods -l app=fruit-store-jdbc-api --output=jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' | while read POD_NAME; do (set -x; kubectl logs ${POD_NAME}); done
+...
+Enabling Java Native Memory Tracking
+Adding 124 container CA certificates to JVM truststore
+Spring Cloud Bindings Enabled
+Picked up JAVA_TOOL_OPTIONS: -Djava.security.properties=/layers/paketo-buildpacks_bellsoft-liberica/java-security-properties/java-security.properties -XX:+ExitOnOutOfMemoryError -XX:ActiveProcessorCount=4 -XX:MaxDirectMemorySize=10M -Xmx2732370K -XX:MaxMetaspaceSize=85497K -XX:ReservedCodeCacheSize=240M -Xss1M -XX:+UnlockDiagnosticVMOptions -XX:NativeMemoryTracking=summary -XX:+PrintNMTStatistics -Dorg.springframework.cloud.bindings.boot.enable=true
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::                (v3.0.1)
+
+2023-01-02T16:00:12.637Z  INFO 1 --- [           main] com.example.FruitStoreApplication        : Starting FruitStoreApplication v0.0.1 using Java 17.0.5 with PID 1 (/workspace/BOOT-INF/classes started by cnb in /workspace)
+2023-01-02T16:00:12.643Z  INFO 1 --- [           main] com.example.FruitStoreApplication        : No active profile set, falling back to 1 default profile: "default"
+2023-01-02T16:00:12.774Z  INFO 1 --- [           main] .BindingSpecificEnvironmentPostProcessor : Creating binding-specific PropertySource from Kubernetes Service Bindings
+2023-01-02T16:00:16.177Z  INFO 1 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JDBC repositories in DEFAULT mode.
+2023-01-02T16:00:16.222Z  INFO 1 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 28 ms. Found 0 JDBC repository interfaces.
+2023-01-02T16:00:21.113Z  INFO 1 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 8080 (http)
+2023-01-02T16:00:21.140Z  INFO 1 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2023-01-02T16:00:21.144Z  INFO 1 --- [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.4]
+2023-01-02T16:00:21.499Z  INFO 1 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2023-01-02T16:00:21.504Z  INFO 1 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 8721 ms
+2023-01-02T16:00:23.505Z  INFO 1 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2023-01-02T16:00:23.939Z  INFO 1 --- [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@8840c98
+2023-01-02T16:00:23.941Z  INFO 1 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2023-01-02T16:00:24.160Z  INFO 1 --- [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 1 endpoint(s) beneath base path '/actuator'
+2023-01-02T16:00:24.401Z  INFO 1 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8080 (http) with context path ''
+2023-01-02T16:00:24.432Z  INFO 1 --- [           main] com.example.FruitStoreApplication        : Started FruitStoreApplication in 12.836 seconds (process running for 13.512)
+2023-01-02T16:02:06.006Z  INFO 1 --- [nio-8080-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2023-01-02T16:02:06.006Z  INFO 1 --- [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2023-01-02T16:02:06.009Z  INFO 1 --- [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 3 ms
 ----
 
 . Test
@@ -321,6 +355,23 @@ $ curl -s http://$(kubectl get services fruit-store-jdbc-api-service -o jsonpath
         "modTime": "2022-12-31T13:46:43.913+00:00"
     }
 ]
+$ curl -s http://172.18.254.242:3000/actuator | python3 -m json.tool
+{
+    "_links": {
+        "self": {
+            "href": "http://172.18.254.242:3000/actuator",
+            "templated": false
+        },
+        "health": {
+            "href": "http://172.18.254.242:3000/actuator/health",
+            "templated": false
+        },
+        "health-path": {
+            "href": "http://172.18.254.242:3000/actuator/health/{*path}",
+            "templated": true
+        }
+    }
+}
 ----
 
 . Remove apps
