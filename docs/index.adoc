@@ -42,7 +42,6 @@ CURRENT   NAME          CLUSTER       AUTHINFO      NAMESPACE
 
 === Secrets
 
-
 * List secrets
 +
 [source,shell]
@@ -54,10 +53,35 @@ kubectl get secrets
 
 ** Decode a specific secret
 +
+--
+* Using `base64` command +
+If the key contains dots, you must escape the dots with a backslash.
++
 [source,shell]
 ----
-kubectl get secrets name-of-secret -o jsonpath='{.data.key-name}' | base64 -d
+kubectl get secrets/${SECRET_NAME} -o jsonpath='{.data.db\.conf}' | base64 -d
 ----
++
+[source,shell]
+----
+kubectl get secrets/${SECRET_NAME} -o jsonpath="{.data['db\.conf']}" | base64 -d
+----
+
+* Using Go Template +
+If your key contains hyphen symbols, you should use the index function.
++
+[source,shell]
+.Escape special characters in Go Template using index function
+----
+kubectl get secrets/${SECRET_NAME} -o go-template --template '{{"key-name: "}}{{ index .data "key-name" | base64decode }}{{ "\n" }}'
+----
+--
++
+--
+.References
+* https://kubernetes.io/docs/reference/kubectl/jsonpath/[JSONPath Support | Kubernetes^]
+* https://stackoverflow.com/questions/67186370/how-escape-chars-in-go-template[kubernetes - How escape chars in Go Template? - Stack Overflow^]
+--
 
 ** Decode all secrets using jq
 +
@@ -84,6 +108,11 @@ port: 5432
 type: postgresql
 username: ************
 ----
++
+--
+.References
+* https://stackoverflow.com/questions/56909180/decoding-kubernetes-secret[docker - Decoding Kubernetes secret - Stack Overflow^]
+--
 
 ==== Examples
 // include::../kind/secret-ex1/busybox.yaml[]
