@@ -45,6 +45,12 @@ show)
     kubectl describe servicebinding/postgres-client-sb
     ;;
 
+show-secrets)
+    set -x
+    kubectl get secrets -n default postgres-client-sb -o json | jq '.data |= map_values(@base64d)'
+    kubectl get secret postgres-client-sb -o go-template='{{range $k,$v := .data}}{{printf "%s: " $k}}{{if not $v}}{{$v}}{{else}}{{$v | base64decode}}{{end}}{{"\n"}}{{end}}'
+    ;;
+
 exec)
     kubectl exec -it deployment.apps/postgres-client-sb -- bash -c "echo 'SELECT * FROM fruits_menu;' | psql"
     ;;
