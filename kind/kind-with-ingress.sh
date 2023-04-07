@@ -72,7 +72,8 @@ EOF
     kubectl patch daemonsets -n projectcontour envoy -p '{"spec":{"template":{"spec":{"nodeSelector":{"ingress-ready":"true"},"tolerations":[{"key":"node-role.kubernetes.io/control-plane","operator":"Equal","effect":"NoSchedule"},{"key":"node-role.kubernetes.io/master","operator":"Equal","effect":"NoSchedule"}]}}}}'
 
     : Install MetalLb
-    kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.7/config/manifests/metallb-native.yaml
+    kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.9/config/manifests/metallb-native.yaml
+    set +x
     while true; do
         if [ -n "$(kubectl get pods -n metallb-system 2> /dev/null)" ]; then
             break
@@ -89,7 +90,7 @@ EOF
     kubectl patch -n kube-system deployment metrics-server --type=json -p '[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--kubelet-insecure-tls"}]'
 
     : Install cert-manager
-    (set -x; kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.10.1/cert-manager.yaml)
+    (set -x; kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml)
     while true; do
         if [ -n "$(kubectl get pods -n cert-manager -l app.kubernetes.io/component=webhook 2> /dev/null)" ]; then
             break
@@ -102,10 +103,17 @@ EOF
     (set -x; kubectl rollout status deployment -n cert-manager -l component=controller --timeout=90s)
     (set -x; kubectl rollout status deployment -n cert-manager -l component=webhook --timeout=90s)
     : Install Service Binding
-    (set -x; kubectl apply -f https://github.com/servicebinding/runtime/releases/download/v0.2.0/servicebinding-runtime-v0.2.0.yaml)
+    (set -x; kubectl apply -f https://github.com/servicebinding/runtime/releases/download/v0.3.0/servicebinding-runtime-v0.3.0.yaml)
     ;;
 
 delete)
+    (set -x; kubectl delete -f https://github.com/servicebinding/runtime/releases/download/v0.3.0/servicebinding-runtime-v0.3.0.yaml)
+    (set -x; kubectl delete -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml)
+    (set -x; kubectl delete -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml)
+    (set -x; kubectl delete -f ${SCRIPT_DIR}/metallb-IPAddressPool.yaml)
+    (set -x; kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.9/config/manifests/metallb-native.yaml)
+    (set -x; kubectl apply -f https://projectcontour.io/quickstart/contour.yaml)
+    (set -x; kubectl delete pvc -n postgres local-claim)
     (set -x; kubectl delete persistentvolume ${PV_NAME})
     (set -x; kind delete cluster --name ${KIND_CLUSTER_NAME})
     ;;

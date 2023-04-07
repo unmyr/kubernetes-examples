@@ -926,7 +926,7 @@ curl -s --insecure --cert ./client.crt --key ./client.key $(kubectl config view 
 +
 [source,shell]
 ----
-kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.10.1/cert-manager.yaml
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml
 ----
 +
 .References
@@ -936,7 +936,7 @@ kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/
 +
 [source,shell]
 ----
-kubectl apply -f https://github.com/servicebinding/runtime/releases/download/v0.2.0/servicebinding-runtime-v0.2.0.yaml
+kubectl apply -f https://github.com/servicebinding/runtime/releases/download/v0.3.0/servicebinding-runtime-v0.3.0.yaml
 ----
 +
 .References

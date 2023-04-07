@@ -33,7 +33,7 @@ exec $SHELL -l
 +
 [source,shell]
 ----
-go install sigs.k8s.io/kind@v0.17.0
+go install sigs.k8s.io/kind@v0.18.0
 ----
 
 . Check installed version
@@ -41,7 +41,7 @@ go install sigs.k8s.io/kind@v0.17.0
 [source,console]
 ----
 $ $(go env GOPATH)/bin/kind version
-kind v0.17.0 go1.19 linux/amd64
+kind v0.18.0 go1.19 linux/amd64
 ----
 
 === Creating a Cluster
@@ -207,7 +207,7 @@ https://metallb.universe.tf/installation/[MetalLB > Installation]
 +
 [source,console]
 ----
-$ kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.7/config/manifests/metallb-native.yaml
+$ kubectl apply -f kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.9/config/manifests/metallb-native.yaml
 namespace/metallb-system created
 customresourcedefinition.apiextensions.k8s.io/addresspools.metallb.io created
 customresourcedefinition.apiextensions.k8s.io/bfdprofiles.metallb.io created
@@ -397,7 +397,7 @@ kubectl patch daemonsets -n projectcontour envoy -p '{"spec":{"template":{"spec"
 +
 [source,shell]
 ----
-go install sigs.k8s.io/kind@v0.17.0
+go install sigs.k8s.io/kind@v0.18.0
 ----
 
 == Uninstall
@@ -417,7 +417,7 @@ Deleted: docker.io/library/your-image-name
 [source,shell]
 ----
 kubectl delete -f greet-go-pod.yaml
-kubectl delete -f https://raw.githubusercontent.com/metallb/metallb/v0.13.4/config/manifests/metallb-native.yaml
+kubectl delete -f https://raw.githubusercontent.com/metallb/metallb/v0.13.9/config/manifests/metallb-native.yaml
 sudo arp -d 172.18.254.240
 ----
 
