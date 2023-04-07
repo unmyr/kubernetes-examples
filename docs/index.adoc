@@ -598,6 +598,101 @@ $ kubectl delete services my-service
 .Reference
 * https://kubernetes.io/ja/docs/concepts/services-networking/dns-pod-service/[ServiceとPodに対するDNS | kubernetes.io](link:https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/[en])
 
+=== CronJob
+
+https://kubernetes.io/docs/tasks/job/automated-tasks-with-cron-jobs/[Running Automated Tasks with a CronJob | Kubernetes^]
+
+* Shell
++
+[source,yaml]
+----
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: shell-cron-job
+  labels:
+    app: shell-cron-job
+spec:
+  schedule: "* * * * *"
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: shell-cron-job
+        spec:
+          containers:
+          - name: hello
+            image: alpine:3.16
+            imagePullPolicy: IfNotPresent
+            command:
+            - /bin/sh
+            - -c
+            - date; echo Hello from the Kubernetes cluster
+          restartPolicy: OnFailure
+----
+
+* Python
++
+[source,yaml]
+----
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: python-cron-job
+  name: python-cron-job-main
+  labels:
+    app: python-cron-job
+data:
+  main.py: |
+    #!env python
+    import datetime
+
+
+    def main():
+        """main"""
+        print(datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S'))
+        print("Hello from the Kubernetes cluster")
+
+
+    if __name__ == '__main__':
+        main()
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  namespace: python-cron-job
+  name: python-cron-job
+  labels:
+    app: python-cron-job
+spec:
+  schedule: "* * * * *"
+  concurrencyPolicy: "Forbid"
+  failedJobsHistoryLimit: 10
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      template:
+        metadata:
+          labels:
+            app: python-cron-job
+        spec:
+          restartPolicy: Never
+          containers:
+          - name: default
+            image: python:3.8-slim-buster
+            imagePullPolicy: IfNotPresent
+            command: ["python", "/app/main.py"]
+            volumeMounts:
+            - mountPath: "/app"
+              name: app-volume
+              readOnly: true
+          volumes:
+          - name: app-volume
+            configMap:
+              name: python-cron-job-main
+----
+
 === Endpoints
 
 * Show all endpoints
@@ -810,6 +905,20 @@ kubectl delete persistentvolume ${PV_NAME}
 [source,shell]
 ----
 docker exec ${KUBE_NODENAME} rmdir ${MOUNT_POINT}
+----
+
+=== Get information
+
+* Listing all resources in a namespace
++
+[source,shell]
+----
+kubectl api-resources --verbs=list --namespaced -o name | python3 -c "import subprocess, sys; subprocess.run(['kubectl', 'get', '-n', '${NAMESPACE}', ','.join([x for x in sys.stdin.read().split() if x not in ['events.events.k8s.io', 'events']])])"
+----
++
+[source,shell]
+----
+kubectl api-resources --verbs=list --namespaced -o name | grep -vE '^(events|events\.events\.k8s\.io)$' | tr "\n" "," | sed -e 's/,$//' | xargs kubectl get -n "${NAMESPACE}"
 ----
 
 === Troubleshooting
