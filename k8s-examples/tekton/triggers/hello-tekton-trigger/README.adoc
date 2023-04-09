@@ -1,0 +1,36 @@
+== Description
+
+. Apply
++
+[source,shell]
+----
+./run.sh apply
+----
+
+. Show events
++
+[source,shell]
+----
+./run.sh events
+----
+
+. Trigger a event
++
+[source,shell]
+----
+./run.sh trigger
+----
+
+. Show logs
++
+[source,shell]
+----
+./run.sh logs
+----
+
+. Delete all
++
+[source,shell]
+----
+./run.sh delete
+----

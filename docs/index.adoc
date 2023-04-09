@@ -1099,10 +1099,6 @@ kubectl krew version
 kubectl krew install neat
 ----
 
-== Tekton
-
-* https://buildpacks.io/docs/tools/tekton/[Tekton · Cloud Native Buildpacks^]
-
 == Knative
 
 * https://qiita.com/t_okkan/items/eef036534ce3d5511df6[Knative Servingでサーバーレスを始める - Qiita^] +

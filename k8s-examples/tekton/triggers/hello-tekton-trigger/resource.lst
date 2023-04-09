@@ -1,0 +1,15 @@
+clusterrolebinding.rbac.authorization.k8s.io
+deployment.apps
+endpointslice.discovery.k8s.io
+eventlistener.triggers.tekton.dev
+pipeline.tekton.dev
+pipelinerun.tekton.dev
+pod
+replicaset.apps
+rolebinding.rbac.authorization.k8s.io
+service
+serviceaccount
+task.tekton.dev
+taskrun.tekton.dev
+triggerbinding.triggers.tekton.dev
+triggertemplate.triggers.tekton.dev

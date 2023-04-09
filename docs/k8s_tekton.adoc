@@ -1,0 +1,291 @@
+ifndef::leveloffset[]
+:toc: left
+:toclevels: 3
+
+ifndef::env-github[]
+:icons: font
+endif::[]
+
+ifdef::env-github[]
+// Alternative to :icons: font on GitHub.
+:tip-caption: :bulb:
+:note-caption: :information_source:
+:important-caption: :heavy_exclamation_mark:
+:caution-caption: :fire:
+:warning-caption: :warning:
+endif::[]
+
+ifndef::imagesdir[]
+:imagesdir: images
+endif::[]
+
+include::header.adoc[]
+
+endif::[]
+
+== Tekton
+
+* https://tekton.dev/[Tekton - tekton.dev^]
+* https://buildpacks.io/docs/tools/tekton/[Tekton · Cloud Native Buildpacks^]
+
+=== Install
+
+.References
+* https://tekton.dev/docs/getting-started/tasks/[Getting started with Tasks | Tekton^]
+
+//^
+
+.Install pipeline
+. To install the latest version of Tekton Pipelines, use `kubectl`:
++
+[source,shell]
+----
+kubectl apply --filename \
+https://storage.googleapis.com/tekton-releases/pipeline/latest/release.yaml
+----
+
+. Monitor the installation:
++
+[source,shell]
+----
+kubectl get pods --namespace tekton-pipelines --watch
+----
++
+When both tekton-pipelines-controller and tekton-pipelines-webhook show 1/1 under the READY column, you are ready to continue. For example:
++
+[source,plaintext]
+----
+NAME                                           READY   STATUS              RESTARTS   AGE
+tekton-pipelines-controller-6d989cc968-j57cs   0/1     Pending             0          3s
+tekton-pipelines-webhook-69744499d9-t58s5      0/1     ContainerCreating   0          3s
+tekton-pipelines-controller-6d989cc968-j57cs   0/1     ContainerCreating   0          3s
+tekton-pipelines-controller-6d989cc968-j57cs   0/1     Running             0          5s
+tekton-pipelines-webhook-69744499d9-t58s5      0/1     Running             0          6s
+tekton-pipelines-controller-6d989cc968-j57cs   1/1     Running             0          10s
+tekton-pipelines-webhook-69744499d9-t58s5      1/1     Running             0          20s
+----
+
+.Install Trigger
+. Use kubectl to install Tekton Triggers:
++
+--
+[source,shell]
+----
+kubectl apply --filename \
+https://storage.googleapis.com/tekton-releases/triggers/latest/release.yaml
+kubectl apply --filename \
+https://storage.googleapis.com/tekton-releases/triggers/latest/interceptors.yaml
+----
+
+.References
+* https://tekton.dev/docs/getting-started/triggers/[Getting Started with Triggers | Tekton^]
+* https://tekton.dev/docs/triggers/install/[Install and set up Tekton Triggers | Tekton^]
+--
+
+. Monitor the installation:
++
+[source,shell]
+----
+kubectl get pods --namespace tekton-pipelines --watch
+----
+When tekton-triggers-controller, tekton-triggers-webhook, and tekton-triggers-core-interceptors show 1/1 under the READY column, you are ready to continue. For example:
++
+[source,plaintext]
+----
+NAME                                                 READY   STATUS    RESTARTS        AGE
+tekton-pipelines-controller-68b8d87687-xxxxx         1/1     Running   2 (4d13h ago)   4d19h
+tekton-pipelines-webhook-6fb6dd6d75-7jfz6            1/1     Running   2 (104s ago)    4d19h
+tekton-triggers-controller-74b654c6bc-24ds7          1/1     Running   2 (104s ago)    4d19h
+tekton-triggers-core-interceptors-79f4dbb969-sk2dk   1/1     Running   3 (104s ago)    4d19h
+tekton-triggers-webhook-56885c9875-nx499             1/1     Running   2 (104s ago)    4d19h
+----
+Hit Ctrl + C to stop monitoring.
+
+=== Get Started with Pipelines
+
+[source,yaml]
+.pipeline.yaml
+----
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: hello-task
+  labels:
+    app: hello-tekton-pipeline
+spec:
+  steps:
+  - name: greetings
+    image: alpine
+    script: |
+      #!/bin/sh
+      date
+      echo "Hello world"
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: goodbye-task
+  labels:
+    app: hello-tekton-pipeline
+spec:
+  params:
+  - name: username
+    type: string
+  steps:
+  - name: greetings
+    image: ubuntu:jammy
+    script: |
+      #!/bin/bash
+      date --iso-8601=second
+      echo "Goodbye $(params.username)!"
+---
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: hello-goodbye
+  labels:
+    app: hello-tekton-pipeline
+spec:
+  params:
+  - name: username
+    type: string
+  tasks:
+  - name: hello
+    taskRef:
+      name: hello-task
+  - name: goodbye
+    runAfter:
+    - hello
+    taskRef:
+      name: goodbye-task
+    params:
+    - name: username
+      value: $(params.username)
+----
+
+[source,yaml]
+.pipeline-run.yaml
+----
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  name: hello-goodbye-run
+  labels:
+    app: hello-tekton-pipeline
+spec:
+  pipelineRef:
+    name: hello-goodbye
+  params:
+  - name: username
+    value: "Tekton"
+----
+
+=== Get Started with Triggers
+
+. Add ServiceAccount and Binding some roles
++
+[source,yaml]
+.rbac.yaml
+----
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  namespace: hello-tekton-trigger
+  name: tekton-robot
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  namespace: hello-tekton-trigger
+  name: triggers-example-eventlistener-binding
+subjects:
+- kind: ServiceAccount
+  name: tekton-robot
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: tekton-triggers-eventlistener-roles
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: triggers-example-eventlistener-clusterbinding
+subjects:
+- kind: ServiceAccount
+  name: tekton-robot
+  namespace: hello-tekton-trigger
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: tekton-triggers-eventlistener-clusterroles
+----
+
+. Add trigger
++
+[source,yaml]
+.trigger.yaml
+----
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerTemplate
+metadata:
+  name: hello-template
+  labels:
+    app: hello-tekton-trigger
+spec:
+  params:
+  - name: username
+    default: "Kubernetes"
+  resourcetemplates:
+  - apiVersion: tekton.dev/v1beta1
+    kind: PipelineRun
+    metadata:
+      generateName: hello-goodbye-run-
+    spec:
+      pipelineRef:
+        name: hello-goodbye
+      params:
+      - name: username
+        value: $(tt.params.username)
+---
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerBinding
+metadata:
+  name: hello-binding
+  labels:
+    app: hello-tekton-trigger
+spec: 
+  params:
+  - name: username
+    value: $(body.username)
+---
+apiVersion: triggers.tekton.dev/v1beta1
+kind: EventListener
+metadata:
+  name: hello-listener
+  labels:
+    app: hello-tekton-trigger
+spec:
+  serviceAccountName: tekton-robot
+  triggers:
+    - name: hello-trigger 
+      bindings:
+      - ref: hello-binding
+      template:
+        ref: hello-template
+----
+
+. Send an event
++
+[source,shell]
+----
+kubectl run -q -n $NAMESPACE -it curl --image=curlimages/curl --rm --restart=Never -- -v -H 'content-Type: application/json' http://el-hello-listener.${NAMESPACE}.svc.cluster.local:8080 -d '{"username": "Tekton"}'
+----
+
+. Clean up
++
+[source,shell]
+----
+APP_NAME="hello-tekton-trigger"
+kubectl -n $NAMESPACE delete pipeline.tekton.dev,pipelinerun.tekton.dev,pod,task.tekton.dev,taskrun.tekton.dev,triggertemplate.triggers.tekton.dev,triggerbinding.triggers.tekton.dev,eventlistener.triggers.tekton.dev -l app=${APP_NAME}
+kubectl apply -f rbac.yaml
+----

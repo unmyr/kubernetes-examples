@@ -1,0 +1,9 @@
+apiVersion: tekton.dev/v1beta1
+kind: TaskRun
+metadata:
+  name: hello-tekton-task-run
+  labels:
+    app: hello-tekton-task
+spec:
+  taskRef:
+    name: hello-task

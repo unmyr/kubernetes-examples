@@ -1,0 +1,55 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: hello-task
+  labels:
+    app: hello-tekton-pipeline
+spec:
+  steps:
+  - name: greetings
+    image: alpine
+    script: |
+      #!/bin/sh
+      date
+      echo "Hello world"
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: goodbye-task
+  labels:
+    app: hello-tekton-pipeline
+spec:
+  params:
+  - name: username
+    type: string
+  steps:
+  - name: greetings
+    image: ubuntu:jammy
+    script: |
+      #!/bin/bash
+      date --iso-8601=second
+      echo "Goodbye $(params.username)!"
+---
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: hello-goodbye
+  labels:
+    app: hello-tekton-pipeline
+spec:
+  params:
+  - name: username
+    type: string
+  tasks:
+  - name: hello
+    taskRef:
+      name: hello-task
+  - name: goodbye
+    runAfter:
+    - hello
+    taskRef:
+      name: goodbye-task
+    params:
+    - name: username
+      value: $(params.username)
