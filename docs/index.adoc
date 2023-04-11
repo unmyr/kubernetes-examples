@@ -366,6 +366,20 @@ $ kubectl delete deployment go-hello-app
 kubectl get pods --all-namespaces
 ----
 
+** Get pod names
++
+[source,shell]
+.Space separated list
+----
+kubectl -n "${NAMESPACE}" get pods --output=jsonpath='{.items[*].metadata.name}'
+----
++
+[source,shell]
+.Newline separated list
+----
+kubectl -n "${NAMESPACE}" get pods --output=jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'
+----
+
 * Get labels
 +
 [source,shell]
@@ -380,6 +394,8 @@ kubectl get pods pod_name -o jsonpath="{.metadata.labels}" | python3 -m json.too
 kubectl wait pods -n metallb-system -l component=controller --for condition=Ready --timeout=90s
 ----
 
+==== Networking
+
 * Get Pod IP's
 +
 [source,shell]
@@ -393,6 +409,51 @@ $ kubectl get pods -l app=go-hello-app -o custom-columns=POD_IP:.status.podIPs
 POD_IP
 [map[ip:10.244.0.12]]
 [map[ip:10.244.0.13]]
+----
+
+* Accessing Pods through internal DNS with Pod IP
++
+[source,shell]
+----
+kubectl run -q -n "${NAMESPACE:-default}" -it curl --image=curlimages/curl --rm --restart=Never --wait=true -- -s -L http://<pod-ip-address>.<service-name>.<namespace>.svc.cluster.local:8080/api/greet/John | python3 -m json.tool
+----
+
+.References
+* https://kubernetes.io/docs/tasks/inject-data-application/_print/[Inject Data Into Applications | Kubernetes^] +
+  kubernetes args dynamic pod ip - Google Search
+* https://stackoverflow.com/questions/50248525/is-there-a-way-to-put-kubernetes-secret-value-in-args-field-of-yaml-file[Is there a way to put Kubernetes secret value in args field of yaml file - Stack Overflow^] +
+  kubernetes args valueFrom - Google 検索
+
+==== Container information
+
+* Get container names
+
+** Containers
++
+[source,shell]
+.Space separated list
+----
+kubectl -n "${NAMESPACE}" get pod/${POD_NAME} --output=jsonpath='{.spec.containers[*].name}'
+----
++
+[source,shell]
+.Newline separated list
+----
+kubectl -n "${NAMESPACE}" get pod/${POD_NAME} --output=jsonpath='{range .spec.containers[*]}{.name}{"\n"}{end}'
+----
+
+** initContainers
++
+[source,shell]
+.Space separated list
+----
+kubectl -n "${NAMESPACE}" get pod/${POD_NAME} --output=jsonpath='{.spec.initContainers[*].name}'
+----
++
+[source,shell]
+.Newline separated list
+----
+kubectl -n "${NAMESPACE}" get pod/${POD_NAME} --output=jsonpath='{range .spec.initContainers[*]}{.name}{"\n"}{end}'
 ----
 
 * Get container ports
@@ -410,38 +471,23 @@ Pod IP        Container port
 10.244.0.13   8080
 ----
 
-* Accessing Pods through internal DNS with Pod IP
-+
-[source,shell]
-----
-kubectl run -q -n default -it curl --image=curlimages/curl --rm --restart=Never --wait=true -- -s -L http://<pod-ip-address>.<service-name>.<namespace>.svc.cluster.local:8080/api/greet/John | python3 -m json.tool
-----
-
-.References
-* https://kubernetes.io/docs/tasks/inject-data-application/_print/[Inject Data Into Applications | Kubernetes^] +
-  kubernetes args dynamic pod ip - Google Search
-* https://stackoverflow.com/questions/50248525/is-there-a-way-to-put-kubernetes-secret-value-in-args-field-of-yaml-file[Is there a way to put Kubernetes secret value in args field of yaml file - Stack Overflow^] +
-  kubernetes args valueFrom - Google 検索
-
 ==== Run images
 
 * Run curl images
 +
 [source,shell]
 ----
-kubectl run -n default -it curl --image=curlimages/curl --rm --restart=Never -- /bin/sh
+kubectl run -n "${NAMESPACE:-default}" -it curl --image=curlimages/curl --rm --restart=Never -- /bin/sh
 ----
-+
-* https://hub.docker.com/r/curlimages/curl[curlimages/curl - Docker Image | Docker Hub^]
+https://hub.docker.com/r/curlimages/curl[curlimages/curl - Docker Image | Docker Hub^]
 
 * Run python images
 +
 [source,shell]
 ----
-kubectl run -q -n $NAMESPACE -it curl --image=python:3.8-slim-buster --rm --restart=Never -- python
+kubectl run -q -n "${NAMESPACE:-default}" -it python --image=python:3.8-slim-buster --rm --restart=Never -- python
 ----
-+
-* https://hub.docker.com/r/python[curlimages/curl - Docker Image | Docker Hub^]
+https://hub.docker.com/_/python/[python - Official Image | Docker Hub^]
 
 ==== Logs
 
@@ -615,7 +661,7 @@ kubectl get services go-hello-service -o jsonpath='{.spec.ports[0].port}'
 +
 [source,shell]
 ----
-kubectl run -q -n default -it curl --image=curlimages/curl --rm --restart=Never --wait=true -- -s -L http://<service-name>.<namespace>.svc.cluster.local:3000/api/greet/John | python3 -m json.tool
+kubectl run -q -n "${NAMESPACE:-default}" -it curl --image=curlimages/curl --rm --restart=Never --wait=true -- -s -L http://<service-name>.<namespace>.svc.cluster.local:3000/api/greet/John | python3 -m json.tool
 ----
 
 * Delete service
