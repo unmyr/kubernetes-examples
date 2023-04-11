@@ -186,8 +186,13 @@ delete)
 show)
     (set -x; kubectl get secret -n ${NAMESPACE} ${SECRET_NAME} -o jsonpath="{.data['fruits\.txt']}" | base64 -d)
     (set -x; kubectl get pods -n ${NAMESPACE})
-    kubectl get pods --selector=job-name=${JOB_NAME} --output=jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' -n ${NAMESPACE} | while read POD_NAME; do
-        (set -x; kubectl logs -n ${NAMESPACE} ${POD_NAME})
+    for POD_NAME in $(kubectl get pods -n "${NAMESPACE}" --output=jsonpath='{.items[*].metadata.name}'); do
+        for CONTAINER_NAME in $(kubectl -n "${NAMESPACE}" get pod/${POD_NAME} --output=jsonpath='{.spec.containers[*].name}'); do
+            (set -x; kubectl logs -n "${NAMESPACE}" "pod/${POD_NAME}" -c "${CONTAINER_NAME}")
+        done
+        for CONTAINER_NAME in $(kubectl -n "${NAMESPACE}" get pod/${POD_NAME} --output=jsonpath='{range .spec.initContainers[*]}{.name}{"\n"}{end}'); do
+            (set -x; kubectl logs -n "${NAMESPACE}" "pod/${POD_NAME}" -c "${CONTAINER_NAME}")
+        done
     done
     ;;
 
@@ -412,7 +417,15 @@ Pod IP        Container port
 kubectl run -q -n default -it curl --image=curlimages/curl --rm --restart=Never --wait=true -- -s -L http://<pod-ip-address>.<service-name>.<namespace>.svc.cluster.local:8080/api/greet/John | python3 -m json.tool
 ----
 
-* Add curl images
+.References
+* https://kubernetes.io/docs/tasks/inject-data-application/_print/[Inject Data Into Applications | Kubernetes^] +
+  kubernetes args dynamic pod ip - Google Search
+* https://stackoverflow.com/questions/50248525/is-there-a-way-to-put-kubernetes-secret-value-in-args-field-of-yaml-file[Is there a way to put Kubernetes secret value in args field of yaml file - Stack Overflow^] +
+  kubernetes args valueFrom - Google 検索
+
+==== Run images
+
+* Run curl images
 +
 [source,shell]
 ----
@@ -421,11 +434,28 @@ kubectl run -n default -it curl --image=curlimages/curl --rm --restart=Never -- 
 +
 * https://hub.docker.com/r/curlimages/curl[curlimages/curl - Docker Image | Docker Hub^]
 
-.References
-* https://kubernetes.io/docs/tasks/inject-data-application/_print/[Inject Data Into Applications | Kubernetes^] +
-  kubernetes args dynamic pod ip - Google Search
-* https://stackoverflow.com/questions/50248525/is-there-a-way-to-put-kubernetes-secret-value-in-args-field-of-yaml-file[Is there a way to put Kubernetes secret value in args field of yaml file - Stack Overflow^] +
-  kubernetes args valueFrom - Google 検索
+* Run python images
++
+[source,shell]
+----
+kubectl run -q -n $NAMESPACE -it curl --image=python:3.8-slim-buster --rm --restart=Never -- python
+----
++
+* https://hub.docker.com/r/python[curlimages/curl - Docker Image | Docker Hub^]
+
+==== Logs
+
+[source,shell]
+----
+for POD_NAME in $(kubectl get pods -n "${NAMESPACE}" --output=jsonpath='{.items[*].metadata.name}'); do
+    for CONTAINER_NAME in $(kubectl -n "${NAMESPACE}" get pod/${POD_NAME} --output=jsonpath='{.spec.containers[*].name}'); do
+        (set -x; kubectl logs -n "${NAMESPACE}" "pod/${POD_NAME}" -c "${CONTAINER_NAME}")
+    done
+    for CONTAINER_NAME in $(kubectl -n "${NAMESPACE}" get pod/${POD_NAME} --output=jsonpath='{range .spec.initContainers[*]}{.name}{"\n"}{end}'); do
+        (set -x; kubectl logs -n "${NAMESPACE}" "pod/${POD_NAME}" -c "${CONTAINER_NAME}")
+    done
+done
+----
 
 ==== Using imagePullSecrets
 
@@ -640,19 +670,56 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   namespace: python-cron-job
-  name: python-cron-job-main
+  name: python-cron-job-src
   labels:
     app: python-cron-job
 data:
   main.py: |
     #!env python
     import datetime
+    import os
+    import time
+    try:
+        import requests
+    except ImportError:
+        import subprocess
+        import sys
+        subprocess.run([
+            sys.executable,
+            "-m",
+            "pip",
+            "--disable-pip-version-check",
+            "install",
+            "requests"
+        ])
+        import requests
 
 
     def main():
         """main"""
+        t_0: float
+        t_1: float
+        t_0 = time.time()
+        usage_path_cpuacct = "/sys/fs/cgroup/cpuacct/cpuacct.usage"
+        usage_path_memory = "/sys/fs/cgroup/memory/memory.usage_in_bytes"
+        if os.path.isfile(usage_path_cpuacct):
+            with open(usage_path_cpuacct) as file_handle:
+                cpuacct_ns_t0 = int(file_handle.read())
         print(datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S'))
         print("Hello from the Kubernetes cluster")
+        res = requests.get("https://httpbin.org/get", params={
+            "message": "Hello"
+        })
+        print(res.text)
+
+        if os.path.isfile(usage_path_memory):
+            with open(usage_path_memory) as file_handle:
+                memory_usage_in_bytes = int(file_handle.read())
+        if os.path.isfile(usage_path_cpuacct):
+            with open(usage_path_cpuacct) as file_handle:
+                cpuacct_ns_t1 = int(file_handle.read())
+        t_1 = time.time()
+        print(f"dt={t_1 - t_0:.2f}s {memory_usage_in_bytes/(1024*1024):.1f}MB {(cpuacct_ns_t1 - cpuacct_ns_t0)/1000000:.1f}ms")
 
 
     if __name__ == '__main__':
@@ -687,10 +754,17 @@ spec:
             - mountPath: "/app"
               name: app-volume
               readOnly: true
+            resources:
+              requests:
+                cpu: "4m"
+                memory: "64Mi"
+              limits:
+                cpu: "167m"
+                memory: "128Mi"
           volumes:
           - name: app-volume
             configMap:
-              name: python-cron-job-main
+              name: python-cron-job-src
 ----
 
 === Endpoints
@@ -919,6 +993,63 @@ kubectl api-resources --verbs=list --namespaced -o name | python3 -c "import sub
 [source,shell]
 ----
 kubectl api-resources --verbs=list --namespaced -o name | grep -vE '^(events|events\.events\.k8s\.io)$' | tr "\n" "," | sed -e 's/,$//' | xargs kubectl get -n "${NAMESPACE}"
+----
+
+* Resource
+
+** Show node usage
++
+[source,console]
+----
+$ kubectl top node
+NAME                   CPU(cores)   CPU%   MEMORY(bytes)   MEMORY%
+kind-1-control-plane   366m         9%     53Mi            0%
+----
+
+** Show pod usage 1
++
+[source,shell]
+----
+kubectl top pod -A
+----
+
+** Show pod usage 2
++
+[source,shell]
+----
+kubectl get pod -n "${NAMESPACE}" -l app=${APP_NAME} --field-selector=status.phase=Running --output=jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' | while read POD_NAME; do
+    for CONTAINER_NAME in $(kubectl -n "${NAMESPACE}" get pod/${POD_NAME} --output=jsonpath='{.spec.containers[*].name}'); do
+        set -x
+        MEM_BYTES=$(kubectl exec -n "${NAMESPACE}" "pod/${POD_NAME}" -c "${CONTAINER_NAME}" -- cat /sys/fs/cgroup/memory/memory.usage_in_bytes)
+        set +x
+        python3 -c "print(f\"{${MEM_BYTES}/(1024*1024):.1f} MB\")"
+    done
+done
+----
+
+** Get metrics
++
+[source,console]
+----
+$ kubectl describe PodMetrics -n python-cron-job
+Name:         python-cron-job-28020409-27rc6
+Namespace:    python-cron-job
+Labels:       app=python-cron-job
+              controller-uid=c01968bb-929d-428e-82dd-3845251b9587
+              job-name=python-cron-job-28020409
+Annotations:  <none>
+API Version:  metrics.k8s.io/v1beta1
+Containers:
+  Name:  default
+  Usage:
+    Cpu:     54408n
+    Memory:  47048Ki
+Kind:        PodMetrics
+Metadata:
+  Creation Timestamp:  2023-04-11T14:51:01Z
+Timestamp:             2023-04-11T14:50:34Z
+Window:                10.173s
+Events:                <none>
 ----
 
 === Troubleshooting

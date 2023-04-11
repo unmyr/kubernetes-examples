@@ -40,8 +40,13 @@ delete)
 show)
     (set -x; kubectl get secret -n ${NAMESPACE} ${SECRET_NAME} -o jsonpath="{.data['fruits\.txt']}" | base64 -d)
     (set -x; kubectl get pods -n ${NAMESPACE})
-    kubectl get pods --selector=job-name=${JOB_NAME} --output=jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' -n ${NAMESPACE} | while read POD_NAME; do
-        (set -x; kubectl logs -n ${NAMESPACE} ${POD_NAME})
+    for POD_NAME in $(kubectl get pods -n "${NAMESPACE}" --output=jsonpath='{.items[*].metadata.name}'); do
+        for CONTAINER_NAME in $(kubectl -n "${NAMESPACE}" get pod/${POD_NAME} --output=jsonpath='{.spec.containers[*].name}'); do
+            (set -x; kubectl logs -n "${NAMESPACE}" "pod/${POD_NAME}" -c "${CONTAINER_NAME}")
+        done
+        for CONTAINER_NAME in $(kubectl -n "${NAMESPACE}" get pod/${POD_NAME} --output=jsonpath='{range .spec.initContainers[*]}{.name}{"\n"}{end}'); do
+            (set -x; kubectl logs -n "${NAMESPACE}" "pod/${POD_NAME}" -c "${CONTAINER_NAME}")
+        done
     done
     ;;
 

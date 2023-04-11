@@ -70,8 +70,11 @@ logs)
 
     echo "# Pod logs"
     for POD_NAME in $(kubectl get pods -n "${NAMESPACE}" --output=jsonpath='{.items[*].metadata.name}'); do
-        for CONTAINER_NAME in $(kubectl get pods -n "${NAMESPACE}" "${POD_NAME}" --output=jsonpath='{.spec.containers[*].name}'); do
-            (set -x; kubectl logs -n "${NAMESPACE}" "${POD_NAME}" -c "${CONTAINER_NAME}")
+        for CONTAINER_NAME in $(kubectl -n "${NAMESPACE}" get pod/${POD_NAME} --output=jsonpath='{.spec.containers[*].name}'); do
+            (set -x; kubectl logs -n "${NAMESPACE}" "pod/${POD_NAME}" -c "${CONTAINER_NAME}")
+        done
+        for CONTAINER_NAME in $(kubectl -n "${NAMESPACE}" get pod/${POD_NAME} --output=jsonpath='{range .spec.initContainers[*]}{.name}{"\n"}{end}'); do
+            (set -x; kubectl logs -n "${NAMESPACE}" "pod/${POD_NAME}" -c "${CONTAINER_NAME}")
         done
     done
     ;;

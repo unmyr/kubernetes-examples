@@ -43,10 +43,6 @@ logs)
     kubectl get job.batch -n "${NAMESPACE}" -l app=${APP_NAME} --output=jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' | while read JOB_NAME; do
         (set -x; kubectl logs -n "${NAMESPACE}" "job.batch/${JOB_NAME}")
     done
-
-    kubectl get pod -n "${NAMESPACE}" -l app=${APP_NAME} --output=jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' | while read POD_NAME; do
-        (set -x; kubectl logs -n "${NAMESPACE}" "${POD_NAME}")
-    done
     ;;
 
 *)
