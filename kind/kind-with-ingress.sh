@@ -44,7 +44,7 @@ EOF
     set -x
 
     KUBE_NODENAME="${KIND_CLUSTER_NAME}-control-plane"
-    kubectl apply -f <<EOF
+    kubectl apply -f - <<EOF
 apiVersion: v1
 kind: PersistentVolume
 metadata:
