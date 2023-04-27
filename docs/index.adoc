@@ -418,11 +418,21 @@ POD_IP
 kubectl run -q -n "${NAMESPACE:-default}" -it curl --image=curlimages/curl --rm --restart=Never --wait=true -- -s -L http://<pod-ip-address>.<service-name>.<namespace>.svc.cluster.local:8080/api/greet/John | python3 -m json.tool
 ----
 
+* Port forwarding +
+You can access the app inside WSL2 from your browser on your Windows host at http://localhost:8081/.
++
+[source,shell]
+----
+kubectl port-forward -n demo --address=0.0.0.0 pod/greet-go-pod 8081:8080
+----
+
 .References
 * https://kubernetes.io/docs/tasks/inject-data-application/_print/[Inject Data Into Applications | Kubernetes^] +
   kubernetes args dynamic pod ip - Google Search
 * https://stackoverflow.com/questions/50248525/is-there-a-way-to-put-kubernetes-secret-value-in-args-field-of-yaml-file[Is there a way to put Kubernetes secret value in args field of yaml file - Stack Overflow^] +
   kubernetes args valueFrom - Google 検索
+* https://stackoverflow.com/questions/51468491/how-kubectl-port-forward-works[kubernetes - How kubectl port-forward works? - Stack Overflow^] +
+  kubectl port-forward --address=0.0.0.0 - Search
 
 ==== Container information
 
