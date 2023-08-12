@@ -8,21 +8,21 @@
 [source,console]
 ----
 $ docker --version
-Docker version 20.10.17, build 100c701
+Docker version 20.10.22, build 3a2c30b
 ----
 
-* KIND ... 0.14.0
+* KIND ... 0.19.0
 +
 [source,console]
 ----
 $ kind --version
-kind version 0.14.0
+kind version 0.19.0
 ----
 
-* MetalLB ... v0.13.4
+* MetalLB ... v0.13.10
 +
 [source,console]
 ----
-$ kubectl get pods -n metallb-system --selector=app=metallb,component=controller -o jsonpath='{.items[0].spec.containers[0].image}'; echo
-quay.io/metallb/controller:v0.13.4
+$ kubectl get pods -n metallb-system --selector=app=metallb,component=controller -o jsonpath='{.items[0].spec.containers[0].image}{"\n"}'
+quay.io/metallb/controller:v0.13.10
 ----

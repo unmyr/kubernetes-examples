@@ -76,6 +76,7 @@
         "ifndef",
         "importlib",
         "inet",
+        "initconfiguration",
         "initdb",
         "initializr",
         "ipaddresspool",
