@@ -8,6 +8,11 @@ Usage: $0 {create|delete|show}
 EOF
 }
 
+type go > /dev/null 2>&1 || \
+{ echo "ERROR: go is not installed."; exit 1; }
+type kubectl > /dev/null 2>&1 || \
+{ echo "ERROR: kubectl is not installed."; exit 1; }
+
 KIND_CLUSTER_NAME="kind-1"
 PV_NAME="postgres-data-pv"
 
@@ -111,8 +116,8 @@ delete)
     (set -x; kubectl delete -f https://github.com/cert-manager/cert-manager/releases/download/v1.12.0/cert-manager.yaml)
     (set -x; kubectl delete -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml)
     (set -x; kubectl delete -f ${SCRIPT_DIR}/metallb-IPAddressPool.yaml)
-    (set -x; kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.10/config/manifests/metallb-native.yaml)
-    (set -x; kubectl apply -f https://projectcontour.io/quickstart/contour.yaml)
+    (set -x; kubectl delete -f https://raw.githubusercontent.com/metallb/metallb/v0.13.10/config/manifests/metallb-native.yaml)
+    (set -x; kubectl delete -f https://projectcontour.io/quickstart/contour.yaml)
     (set -x; kubectl delete pvc -n postgres local-claim)
     (set -x; kubectl delete persistentvolume ${PV_NAME})
     (set -x; kind delete cluster --name ${KIND_CLUSTER_NAME})
