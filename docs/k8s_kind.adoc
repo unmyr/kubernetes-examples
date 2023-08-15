@@ -14,12 +14,15 @@ include::header.adoc[]
 
 === Install KIND
 
-. Set `go` bin path
+. Install golang and Set `go` bin path
 +
 [source,shell]
 .~/.bashrc
 ----
-test -d $HOME/go/bin && export PATH="$HOME/go/bin:$PATH"
+cat >> ~/.bashrc <<'EOF'
+export GOPATH=$HOME/go
+test -d $GOPATH/bin && export PATH="$GOPATH/bin:$PATH"
+EOF
 ----
 
 . Apply changes

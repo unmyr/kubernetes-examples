@@ -1242,6 +1242,17 @@ kubectl apply -f https://github.com/servicebinding/runtime/releases/download/v0.
 * https://github.com/spring-cloud/spring-cloud-bindings[spring-cloud/spring-cloud-bindings^] +
   A library that exposes a rich Java language-binding and auto-configuration for CNB Bindings
 
+== Install kubectl
+
+. Download latest version.
++
+[source,shell]
+----
+curl -LO "https://dl.k8s.io/release/$(curl -LS https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+install -m 755 kubectl $HOME/bin/
+rm kubectl
+----
+
 == krew
 
 === Install krew
