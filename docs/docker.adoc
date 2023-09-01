@@ -12,7 +12,9 @@ include::header.adoc[]
 ** <<docker_install_ubuntu-14.04.adoc#,Ubuntu 14.04 LTS>>
 ** <<docker_install_ubuntu-18.04.adoc#,Ubuntu 18.04 LTS>>
 
-=== Install docker
+=== Install
+
+==== Install docker
 
 . Update the apt package index and install packages to allow apt to use a repository over HTTPS:
 +
@@ -120,6 +122,315 @@ sudo service docker start
   ubuntu20.04 docker.io wsl - Google 検索
 * https://thinkit.co.jp/article/18024[Kubernetes 1.20から始まるDockerランタイムの非推奨化に備えよう! 我々が知っておくべきこと・すべきこと | Think IT(シンクイット)^] +
   deprecated docker io.containerd.grpc.v1.cri - Microsoft Bing
+
+==== Install docker-credential-pass
+
+. Install Pass and gpg2
++
+[source,shell]
+----
+sudo apt-get install -y gnupg2 pass
+----
+
+. Download `docker-credential-pass-vM.N.P.linux-amd64` from https://github.com/docker/docker-credential-helpers/releases[Releases · docker/docker-credential-helpers^]
++
+--
+* Download https://github.com/docker/docker-credential-helpers/releases/download/v0.8.0/docker-credential-pass-v0.8.0.linux-amd64[docker-credential-pass-v0.8.0.linux-amd64^]
++
+[source,shell]
+----
+curl -L -o docker-credential-pass https://github.com/docker/docker-credential-helpers/releases/download/v0.8.0/docker-credential-pass-v0.8.0.linux-amd64
+install -m 0755 docker-credential-pass $HOME/bin/docker-credential-pass
+----
++
+[source,shell]
+----
+curl -fsSLI -o /dev/null -w %{url_effective} https://api.github.com/repos/docker/docker-credential-helpers/releases/latest | xargs curl -s | grep -o "https.*docker-credential-pass-v.\..\..\.linux-amd64" | xargs curl -L -o docker-credential-pass
+----
++
+[source,shell]
+----
+wget -O docker-credential-pass https://github.com/docker/docker-credential-helpers/releases/download/v0.8.0/docker-credential-pass-v0.8.0.linux-amd64
+----
+
+* Install & Verify installed.
++
+[source,console]
+----
+$ ./docker-credential-pass --version
+docker-credential-pass (github.com/docker/docker-credential-helpers) v0.8.0
+$ install -m 0755 docker-credential-pass $HOME/bin/docker-credential-pass
+$ rm -f ./docker-credential-pass
+----
+--
+
+=== Setup
+
+==== Setup docker-credential-pass
+
+[NOTE]
+====
+When using with WSL, `docker-pass-initialized-check` vanished every time you start up.
+====
+
+. Generate a GPG Key
++
+[source,shell]
+----
+gpg2 --full-generate-key
+----
+
+. Show keys
++
+[source,shell]
+----
+gpg2 --list-secret-keys | grep -E -B 1 '^uid\W' | head -n1 | sed 's/^ *//g'
+----
+
+. Initialize the password store
++
+[source,shell]
+----
+pass init "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+----
+
+. Add password
++
+[source,shell]
+----
+pass insert docker-credential-helpers/docker-pass-initialized-check
+----
++
+[source,console]
+----
+$ pass insert docker-credential-helpers/docker-pass-initialized-check
+mkdir: created directory '/home/guest/.password-store/docker-credential-helpers'
+Enter password for docker-credential-helpers/docker-pass-initialized-check:
+Retype password for docker-credential-helpers/docker-pass-initialized-check:
+----
+
+. (Optional) Insert GitHub Access Token
++
+[source,shell]
+----
+'{ "ServerURL": "ghcr.io", "Username": "alice", "Secret": "ghp_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" }' | docker-credential-pass store
+----
++
+[source,console]
+.Show credentials
+----
+$ docker-credential-pass list
+{"ghcr.io":"alice"}
+----
+
+. Configure ~/.docker/config.json
++
+[source,shell]
+.Example 1
+----
+sed -i '0,/{/s/{/{\n\t"credsStore": "pass",/' ~/.docker/config.json
+----
++
+[source,shell]
+.Example 2
+----
+python3 -c "import json; print(json.dumps({'credsStore': 'pass'}, indent=4))" > ~/.docker/config.json
+----
++
+[source,json]
+.Example 3: ~/.docker/config.json
+----
+{
+    "credsStore": "pass"
+}
+----
+
+. Login to `https://ghcr.io`
++
+[source,shell]
+----
+docker login ghcr.io
+----
+
+//^
+
+* List credentials
++
+[source,shell]
+----
+docker-credential-pass list
+----
+
+* Show password store
++
+[source,shell]
+----
+(set -x; find ~/.password-store/ -type f)
+----
+
+* Remove credential
++
+[source,shell]
+----
+echo "ghcr.io" | docker-credential-pass erase
+----
+
+* Remove docker-pass-initialized-check
++
+[source,shell]
+----
+pass delete docker-credential-helpers/docker-pass-initialized-check
+----
+
+* Remove credential helper
++
+[source,shell]
+----
+pass remove -rf docker-credential-helpers
+----
+
+.References
+* https://ovaar.github.io/blog/how-to-setup-docker-credential-store/[How to setup docker credential-store - Ovaar - Software engineering blog^]
+
+==== Setup docker-credential-ghcr
+
+[source,shell]
+.~/bin/docker-credential-ghcr
+----
+#!/bin/bash
+usage (){
+    MESSAGE="$1"
+    test -n "${MESSAGE}" && echo $MESSAGE
+    cat <<EOF
+usage: $0
+EOF
+}
+
+SUB_COMMAND="$1"
+case "${SUB_COMMAND}" in
+erase)
+    set -x
+    pass delete ghcr
+    exit $?
+    ;;
+
+get)
+    REGISTRY_HOST="$(cat -)"
+    if [ "$REGISTRY_HOST" != "ghcr.io" ]; then
+        usage "WARNING: Unsupported host : HOST='${REGISTRY_HOST}'"
+    fi
+    pass show ghcr > /dev/null || { echo "Please execute: pass insert ghcr" 1>&2; exit 1; }
+    cat <<EOF
+{ "Username": "$(git config user.name)", "Secret": "$(pass show ghcr)" }
+EOF
+    ;;
+
+store)
+    # Example input(with -e option):
+    # { "Username": "your-git-user-name", "Secret": "ghp_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" }
+    # set -x
+    cat - | pass insert ghcr -f
+    exit 0
+    ;;
+
+*)
+    usage "ERROR: Unsupported subcommand : SUB-COMMAND='${SUB_COMMAND}'"
+    ;;
+
+esac
+----
+
+[source,shell]
+----
+usage() {
+    MESSAGE=$1
+    test -n "$MESSAGE" && echo "$MESSAGE" 1>&2
+}
+
+SUB_COMMAND="$1"
+
+. .env
+
+export PASS_FOLDER="ghcr"
+
+case "${SUB_COMMAND}" in
+init)
+    # set -x
+    cat > $HOME/.docker/config.json <<EOF
+{
+    "auths": {
+        "ghcr.io": {}
+    },
+    "credsStore": "pass",
+    "credHelpers": {
+        "ghcr.io": "ghcr",
+        "docker.pkg.github.com": "ghcr",
+        "index.docker.io": ""
+    }
+}
+EOF
+    ;;
+
+login)
+    # set -x
+    if [ ! -f ~/.password-store/.gpg-id ]; then
+        key=$(gpg2 --list-secret-keys | grep -E -B 1 '^uid\W' | head -n1 | sed 's/^ *//g')
+        echo "Initializing pass with key $key"
+        pass init $key
+    fi
+
+    GITHUB_API_TOKEN_TEMP=$(pass show ghcr 2> /dev/null)
+    if [ -z "${GITHUB_API_TOKEN_TEMP}" ]; then
+        echo -n "Password: "
+        read -s GITHUB_API_TOKEN
+        echo
+
+        # Store a get-command outputs
+        echo -n "${GITHUB_API_TOKEN}" | pass insert ghcr -e -f
+
+        # Enter gpg password if expired
+        pass show ghcr > /dev/null
+    fi
+    docker login ghcr.io
+    # (set -x; find $HOME/.password-store/ -type f)
+    ;;
+
+logout)
+    set -x
+    echo "ghcr.io" | docker-credential-ghcr erase
+    (set -x; find $HOME/.password-store/ -type f)
+    ;;
+
+delete)
+    set -x
+    echo "ghcr.io" | docker-credential-ghcr erase
+    # pass remove -rf ghcr
+    rm ~/.password-store/.gpg-id
+    (set -x; find $HOME/.password-store/ -type f)
+    ;;
+
+show)
+    (cd $HOME; set -x; find .password-store/ -type f)
+
+    echo "++ echo ghcr.io | docker-credential-ghcr get"
+    (echo ghcr.io | docker-credential-ghcr get)
+    (cd $HOME; set -x; cat ./.docker/config.json)
+    echo
+    ;;
+
+restart)
+    sudo service docker stop
+    rm ~/.docker/config.json
+    sudo service docker start
+    ;;
+
+*)
+    usage "ERROR: Invalid Argument. : SUB_COMMAND='$SUB_COMMAND'"
+    exit 1
+    ;;
+
+esac
+----
 
 === Show information
 
