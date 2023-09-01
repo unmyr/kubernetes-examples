@@ -7,6 +7,15 @@ include::header.adoc[]
 
 == Kubernetes
 
+=== Resource types
+
+* https://kubernetes.io/docs/reference/kubectl/#resource-types[Command line tool (kubectl) | Kubernetes^]
+
+[source,shell]
+----
+kubectl api-resources
+----
+
 === Config
 
 [source,console]
@@ -334,29 +343,6 @@ kubectl get nodes kind-1-control-plane -o jsonpath="{.metadata.labels.kubernetes
 .References
 * https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/[Assign Pods to Nodes | Kubernetes^]
 
-=== Deployments
-
-* Deploymentに関する情報を表示します:
-+
-[source,console]
-----
-$ kubectl get deployments go-hello-app
-NAME           READY   UP-TO-DATE   AVAILABLE   AGE
-go-hello-app   1/1     1            1           9h
-----
-+
-[source,console]
-----
-$ kubectl describe deployments go-hello-app
-----
-
-* Delete deployment
-+
-[source,console]
-----
-$ kubectl delete deployment go-hello-app
-----
-
 === Pods
 
 * Get all pods
@@ -391,7 +377,123 @@ kubectl get pods pod_name -o jsonpath="{.metadata.labels}" | python3 -m json.too
 +
 [source,shell]
 ----
-kubectl wait pods -n metallb-system -l component=controller --for condition=Ready --timeout=90s
+kubectl wait -n metallb-system --for=condition=Ready pods --selector=app=metallb --timeout=90s
+kubectl wait -n metallb-system --for=condition=Ready pods --selector=app=metallb -l component=controller --timeout=90s
+kubectl wait -n metallb-system --for=condition=Ready pods --selector=app=metallb -l component=speaker --timeout=90s
+----
+
+=== ReplicaSets
+
+* ReplicaSetオブジェクトに関する情報を表示します:
++
+[source,console]
+----
+$ kubectl get replicasets
+NAME                      DESIRED   CURRENT   READY   AGE
+go-hello-app-54877bc7f9   0         0         0       9h
+go-hello-app-6cf496f84c   1         1         1       28m
+go-hello-app-854775f8d4   0         0         0       9h
+----
++
+[source,console]
+----
+$ kubectl describe replicasets
+----
+
+* Wait for ready
++
+[source,shell]
+----
+kubectl wait -n metallb-system --for=jsonpath='{.status.readyReplicas}'=$(kubectl get -n metallb-system replicasets --selector=app=metallb -o jsonpath='{.items[0].spec.replicas}') replicasets --selector=app=metallb -l component=controller --timeout=90s
+----
++
+[source,console]
+----
+$ kubectl get replicasets -n metallb-system  -o yaml
+apiVersion: v1
+items:
+- apiVersion: apps/v1
+  kind: ReplicaSet
+  metadata:
+    annotations:
+      deployment.kubernetes.io/desired-replicas: "1"
+      deployment.kubernetes.io/max-replicas: "2"
+      deployment.kubernetes.io/revision: "1"
+    creationTimestamp: "2023-09-01T18:10:04Z"
+    generation: 1
+    labels:
+      app: metallb
+      component: controller
+      pod-template-hash: 595f88d88f
+    name: controller-595f88d88f
+    namespace: metallb-system
+  ...
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: metallb
+        component: controller
+        pod-template-hash: 595f88d88f
+    ...
+  status:
+    availableReplicas: 1
+    fullyLabeledReplicas: 1
+    observedGeneration: 1
+    readyReplicas: 1
+    replicas: 1
+kind: List
+metadata:
+  resourceVersion: ""
+$ kubectl wait -n metallb-system --for=jsonpath='{.status.readyReplicas}'=$(kubectl get -n metallb-system replicasets --selector=app=metallb -o jsonpath='{.items[0].spec.replicas}') replicasets --selector=app=metallb -l component=controller --timeout=90s
+replicaset.apps/controller-595f88d88f condition met
+----
+
+=== Deployments
+
+* Deploymentに関する情報を表示します:
++
+[source,console]
+----
+$ kubectl get deployments go-hello-app
+NAME           READY   UP-TO-DATE   AVAILABLE   AGE
+go-hello-app   1/1     1            1           9h
+----
++
+[source,console]
+----
+$ kubectl describe deployments go-hello-app
+----
+
+* Wait for Available
++
+[source,shell]
+----
+kubectl wait -n metallb-system --for=condition=Available deployments --selector=app=metallb --timeout=90s
+----
++
+[cols="2" options="header,autowidth"]
+.Conditions
+|===
+| Type            | Reason
+
+h| Available      | MinimumReplicasAvailable
+h| Progressing    | NewReplicaSetAvailable
+h| ReplicaFailure | FailedCreate  
+|===
+
+* How to wait for a rollout to complete in Kubernetes
++
+[source,shell]
+----
+kubectl rollout status deployment/controller -n metallb-system
+----
+
+* Delete deployment
++
+[source,console]
+----
+$ kubectl delete deployment go-hello-app
 ----
 
 ==== Networking
@@ -558,7 +660,7 @@ spec:
   serviceAccountName: ${SA_NAME}
   containers:
   - name: greet-go
-    image: ghcr.io/unmyr/greet-go:0.1
+    image: ghcr.io/********/greet-go:0.1
     imagePullPolicy: IfNotPresent
     ports:
     - containerPort: 8080
@@ -611,28 +713,10 @@ spec:
   serviceAccountName: ${SA_NAME}
   containers:
   - name: greet-go
-    image: ghcr.io/unmyr/greet-go:0.1
+    image: ghcr.io/********/greet-go:0.1
     imagePullPolicy: IfNotPresent
     ports:
     - containerPort: 8080
-----
-
-=== ReplicaSets
-
-* ReplicaSetオブジェクトに関する情報を表示します:
-+
-[source,console]
-----
-$ kubectl get replicasets
-NAME                      DESIRED   CURRENT   READY   AGE
-go-hello-app-54877bc7f9   0         0         0       9h
-go-hello-app-6cf496f84c   1         1         1       28m
-go-hello-app-854775f8d4   0         0         0       9h
-----
-+
-[source,console]
-----
-$ kubectl describe replicasets
 ----
 
 === Services
