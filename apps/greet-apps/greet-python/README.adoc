@@ -92,36 +92,95 @@ docker.io/library/greet-python             0.1                  89a16e5c16a1f   
 
 . Deploy
 +
+[source,shell]
+----
+kubectl create ns demo
+kubectl apply -n demo -f greet-python.pod.yaml
+kubectl get -n demo pods,services
+----
++
 [source,console]
 ----
-$ kubectl apply -f kind/greet-python.pod.yaml
+$ kubectl apply -n demo -f greet-python.pod.yaml
 pod/greet-python-pod created
 service/greet-python-service created
-$ kubectl get service greet-python-service
-NAME                   TYPE           CLUSTER-IP    EXTERNAL-IP      PORT(S)          AGE
-greet-python-service   LoadBalancer   10.96.11.59   172.18.254.240   3000:31186/TCP   13s
-$ kubectl logs greet-python-pod
+----
++
+[source,console]
+----
+$ kubectl get -n demo pods,services
+NAME                   READY   STATUS    RESTARTS   AGE
+pod/greet-python-pod   1/1     Running   0          6m2s
+
+NAME                           TYPE           CLUSTER-IP      EXTERNAL-IP      PORT(S)          AGE
+service/greet-python-service   LoadBalancer   10.96.215.236   172.18.254.241   3000:30076/TCP   6m2s
+----
++
+[source,console]
+----
+$ kubectl logs -n demo greet-python-pod
  * Serving Flask app 'server'
  * Debug mode: on
 WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
  * Running on all addresses (0.0.0.0)
  * Running on http://127.0.0.1:8080
- * Running on http://10.244.0.7:8080
+ * Running on http://10.244.0.17:8080
 Press CTRL+C to quit
  * Restarting with stat
  * Debugger is active!
- * Debugger PIN: 105-396-156
+...
 ----
 
-. Test
+. Test connection using port forwarding
++
+[source,shell]
+.Terminal 1: Run `kubectl port-forward ...`
+----
+kubectl port-forward -n demo --address=0.0.0.0 pod/greet-python-pod 4000:8080
+----
 +
 [source,console]
 ----
-$ curl -s http://172.18.254.240:3000/api/greet/John
+$ kubectl get -n demo pods -l app=greet-python-app -o custom-columns="Pod IP":.status.podIP,"Container port":.spec.containers[0].ports[].containerPort
+Pod IP        Container port
+10.244.0.19   8080
+$ kubectl get -n demo pods -l app=greet-python-app -o jsonpath='{range .items[*]}{range .spec.containers[0].ports[*]}{.containerPort}{end}{"\n"}{end}'
+8080
+$ kubectl port-forward -n demo --address=0.0.0.0 pod/greet-python-pod 4000:8080
+Forwarding from 0.0.0.0:4000 -> 8080
+----
++
+[source,console]
+.Terminal 2: Run curl on WSL
+----
+$ curl -s http://127.0.0.1:4000/api/greet/John
 {
   "message": "Hello, John!"
 }
-$ curl -s http://$(kubectl get services greet-python-service -o jsonpath='{.status.loadBalancer.ingress[*].ip}'):$(kubectl get services greet-python-service -o jsonpath='{.spec.ports[0].port}')/api/greet/John --header "Content-Type: application/json" | python3 -m json.tool
+----
++
+[source,console]
+.Terminal 3(PowerShell): Run Invoke-WebRequest on WSL Windows Host
+----
+PS> (Invoke-WebRequest http://127.0.0.1:4000/api/greet/John).Content
+{
+  "message": "Hello, John!"
+}
+----
+
+. Test connection via external IP
++
+[source,console]
+----
+$ kubectl get -n demo services greet-python-service -o jsonpath='{.status.loadBalancer.ingress[*].ip}'ip}'
+172.18.254.241
+$ kubectl get -n demo services greet-python-service -o jsonpath='{.spec.ports[0].port}'
+3000
+$ curl -s http://172.18.254.241:3000/api/greet/John
+{
+  "message": "Hello, John!"
+}
+$ curl -s http://$(kubectl get -n demo services greet-python-service -o jsonpath='{.status.loadBalancer.ingress[*].ip}'):$(kubectl get -n demo services greet-python-service -o jsonpath='{.spec.ports[0].port}')/api/greet/John --header "Content-Type: application/json" | python3 -m json.tool
 {
     "message": "Hello, John!"
 }
@@ -144,6 +203,89 @@ $ docker exec -it kind-1-control-plane crictl images | grep -E 'IMAGE ID|docker.
 ...
 $ docker exec kind-1-control-plane crictl images | grep -E 'docker.io/library/greet-python' | awk '{print $3}' | xargs --no-run-if-empty docker exec kind-1-control-plane crictl rmi
 Deleted: docker.io/library/greet-python:0.1
+----
+
+==== Using NodePort
+
+. Deploy
++
+[source,console]
+----
+$ kubectl apply -n demo -f greet-python.pod.np.yaml
+pod/greet-python-pod created
+service/greet-python-service created
+----
++
+[source,console]
+----
+$ kubectl get -n demo pods,services
+NAME                   READY   STATUS    RESTARTS   AGE
+pod/greet-python-pod   1/1     Running   0          67s
+
+NAME                           TYPE       CLUSTER-IP     EXTERNAL-IP   PORT(S)          AGE
+service/greet-python-service   NodePort   10.96.154.24   <none>        8080:30000/TCP   67s
+----
++
+[source,console]
+----
+$ kubectl logs -n demo greet-python-pod
+ * Serving Flask app 'server'
+ * Debug mode: on
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://10.244.0.18:8080
+Press CTRL+C to quit
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 124-821-347
+----
+
+. Connect from localhost on WSL
++
+[source,console]
+----
+$ curl http://127.0.0.1:30000/api/greet/John
+{
+  "message": "Hello, John!"
+}
+----
+
+. Connect from WSL Windows host
++
+[source,ps1con]
+----
+PS> (Invoke-WebRequest http://127.0.0.1:30000/api/greet/John).Content
+Invoke-WebRequest : リモート サーバーに接続できません。
+発生場所 行:1 文字:2
++ (Invoke-WebRequest http://127.0.0.1:30000/api/greet/John).Content
++  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : InvalidOperation: (System.Net.HttpWebRequest:HttpWebRequest) [Invoke-WebRequest]、WebException
+    + FullyQualifiedErrorId : WebCmdletWebResponseException,Microsoft.PowerShell.Commands.InvokeWebRequestCommand
+
+PS> wsl.exe hostname -I
+172.30.xxx.18 172.18.0.1 172.17.0.1 fc00:f853:ccd:e793::1
+
+PS> (Invoke-WebRequest http://172.30.xxx.18:30000/api/greet/John).Content
+{
+  "message": "Hello, John!"
+}
+----
++
+.Run as Administrator: No port proxy was needed.
+----
+PS> netsh interface portproxy show v4tov4
+
+PS> 
+----
+
+. Remove apps
++
+[source,console]
+----
+$ kubectl delete -n demo -f greet-python.pod.np.yaml
+pod "greet-python-pod" deleted
+service "greet-python-service" deleted
 ----
 
 === Troubleshooting

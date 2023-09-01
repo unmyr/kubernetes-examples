@@ -569,6 +569,8 @@ kubectl -n "${NAMESPACE}" get pod/${POD_NAME} --output=jsonpath='{range .spec.in
 ----
 
 * Get container ports
+
+** Example 1
 +
 [source,shell]
 ----
@@ -581,6 +583,19 @@ $ kubectl get pods -l app=go-hello-app -o custom-columns="Pod IP":.status.podIP,
 Pod IP        Container port
 10.244.0.12   8080
 10.244.0.13   8080
+----
+
+** Example 2
++
+[source,shell]
+----
+kubectl get -n demo pods -l app=greet-python-app -o jsonpath='{range .items[*]}{range .spec.containers[*]}{range .ports[*]}{.containerPort}{end}{" "}{end}{"\n"}{end}'
+----
++
+[source,console]
+----
+$ kubectl get -n demo pods -l app=greet-python-app -o jsonpath='{range .items[*]}{range .spec.containers[*]}{range .ports[*]}{.containerPort}{end}{" "}{end}{"\n"}{end}'
+8080
 ----
 
 ==== Run images
