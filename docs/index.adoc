@@ -488,6 +488,13 @@ h| ReplicaFailure | FailedCreate
 ----
 kubectl rollout status deployment/controller -n metallb-system
 ----
++
+[source,shell]
+----
+(set -x; kubectl rollout status deployment -n cert-manager -l app.kubernetes.io/component=controller --timeout=90s)
+(set -x; kubectl rollout status deployment -n cert-manager -l app.kubernetes.io/component=cainjector --timeout=90s)
+(set -x; kubectl rollout status deployment -n cert-manager -l app.kubernetes.io/component=webhook --timeout=90s)
+----
 
 * Delete deployment
 +
@@ -615,6 +622,19 @@ https://hub.docker.com/r/curlimages/curl[curlimages/curl - Docker Image | Docker
 kubectl run -q -n "${NAMESPACE:-default}" -it python --image=python:3.8-slim-buster --rm --restart=Never -- python
 ----
 https://hub.docker.com/_/python/[python - Official Image | Docker Hub^]
+
+* Run ubuntu image
++
+[source,shell]
+----
+kubectl run -n "${NAMESPACE:-default}" -it ubuntu --image=ubuntu:22.04 --rm --restart=Never -- /bin/bash
+----
++
+[source,shell]
+----
+apt-get update
+apt-get install openssl
+----
 
 ==== Logs
 
@@ -1340,6 +1360,92 @@ kubectl apply -f https://github.com/servicebinding/runtime/releases/download/v0.
 .References
 * https://github.com/spring-cloud/spring-cloud-bindings[spring-cloud/spring-cloud-bindings^] +
   A library that exposes a rich Java language-binding and auto-configuration for CNB Bindings
+
+=== Service binding installation fails during ContainerCreating
+
+[source,console]
+----
+...
++ kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.12.0/cert-manager.yaml
+namespace/cert-manager created
+...
+validatingwebhookconfiguration.admissionregistration.k8s.io/cert-manager-webhook created
++ true
+++ kubectl get pods -n cert-manager -l app.kubernetes.io/component=webhook
++ '[' -n 'NAME                                    READY   STATUS              RESTARTS   AGE
+cert-manager-webhook-5655dcfb4b-xxxxx   0/1     ContainerCreating   0          1s' ']'
++ break
++ set -x
++ kubectl wait pods -n cert-manager -l app.kubernetes.io/component=webhook --for condition=Ready --timeout=90s
+pod/cert-manager-webhook-5655dcfb4b-xxxxx condition met
++ set -x
++ kubectl get deployment.apps -n cert-manager
+NAME                      READY   UP-TO-DATE   AVAILABLE   AGE
+cert-manager              0/1     1            0           16s
+cert-manager-cainjector   0/1     1            0           16s
+cert-manager-webhook      1/1     1            1           16s
++ set -x
++ kubectl get pods -n cert-manager
+NAME                                      READY   STATUS              RESTARTS   AGE
+cert-manager-7476c8fcf4-xc2l9             0/1     ContainerCreating   0          16s
+cert-manager-cainjector-bdd866bd4-8v8nw   0/1     ContainerCreating   0          16s
+cert-manager-webhook-5655dcfb4b-xxxxx     1/1     Running             0          16s
++ set -x
++ kubectl rollout status deployment -n cert-manager -l component=controller --timeout=90s
++ set -x
++ kubectl rollout status deployment -n cert-manager -l component=webhook --timeout=90s
++ : Install Service Binding
++ set -x
++ kubectl apply -f https://github.com/servicebinding/runtime/releases/download/v0.4.0/servicebinding-runtime-v0.4.0.yaml
+namespace/servicebinding-system created
+...
+validatingwebhookconfiguration.admissionregistration.k8s.io/servicebinding-trigger created
+validatingwebhookconfiguration.admissionregistration.k8s.io/servicebinding-validating-webhook-configuration created
+Error from server (InternalError): error when creating "https://github.com/servicebinding/runtime/releases/download/v0.4.0/servicebinding-runtime-v0.4.0.yaml": Internal error occurred: failed calling webhook "webhook.cert-manager.io": failed to call webhook: Post "https://cert-manager-webhook.cert-manager.svc:443/mutate?timeout=10s": tls: failed to verify certificate: x509: certificate signed by unknown authority
+Error from server (InternalError): error when creating "https://github.com/servicebinding/runtime/releases/download/v0.4.0/servicebinding-runtime-v0.4.0.yaml": Internal error occurred: failed calling webhook "webhook.cert-manager.io": failed to call webhook: Post "https://cert-manager-webhook.cert-manager.svc:443/mutate?timeout=10s": tls: failed to verify certificate: x509: certificate signed by unknown authority
+----
+
+[source,console]
+----
+$ (set -x; kubectl rollout status deployment -n cert-manager -l component=controller --timeout=90s)
++ kubectl rollout status deployment -n cert-manager -l component=controller --timeout=90s
+guest@ubuntu22-wsl:~/tmp_github/kubernetes-examples/kind$ kubectl get all -n cert-manager
+NAME                                          READY   STATUS    RESTARTS   AGE
+pod/cert-manager-7476c8fcf4-xc2l9             1/1     Running   0          4m5s
+pod/cert-manager-cainjector-bdd866bd4-8v8nw   1/1     Running   0          4m5s
+pod/cert-manager-webhook-5655dcfb4b-xxxxx     1/1     Running   0          4m5s
+
+NAME                           TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
+service/cert-manager           ClusterIP   10.96.249.221   <none>        9402/TCP   4m5s
+service/cert-manager-webhook   ClusterIP   10.96.155.89    <none>        443/TCP    4m5s
+
+NAME                                      READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/cert-manager              1/1     1            1           4m5s
+deployment.apps/cert-manager-cainjector   1/1     1            1           4m5s
+deployment.apps/cert-manager-webhook      1/1     1            1           4m5s
+
+NAME                                                DESIRED   CURRENT   READY   AGE
+replicaset.apps/cert-manager-7476c8fcf4             1         1         1       4m5s
+replicaset.apps/cert-manager-cainjector-bdd866bd4   1         1         1       4m5s
+replicaset.apps/cert-manager-webhook-5655dcfb4b     1         1         1       4m5s
+----
+
+[source,console]
+----
+$ (set -x; kubectl apply -f https://github.com/servicebinding/runtime/releases/download/v0.4.0/servicebinding-runtime-v0.4.0.yaml)
++ kubectl apply -f https://github.com/servicebinding/runtime/releases/download/v0.4.0/servicebinding-runtime-v0.4.0.yaml
+namespace/servicebinding-system unchanged
+...
+configmap/servicebinding-manager-config unchanged
+service/servicebinding-controller-manager-metrics-service unchanged
+service/servicebinding-webhook-service unchanged
+deployment.apps/servicebinding-controller-manager unchanged
+certificate.cert-manager.io/servicebinding-serving-cert created
+issuer.cert-manager.io/servicebinding-selfsigned-issuer created
+mutatingwebhookconfiguration.admissionregistration.k8s.io/servicebinding-admission-projector unchanged
+validatingwebhookconfiguration.admissionregistration.k8s.io/servicebinding-trigger unchanged
+validatingwebhookconfiguration.admissionregistration.k8s.io/servicebinding-validating-webhook-configuration configured
+----
 
 == Install kubectl
 

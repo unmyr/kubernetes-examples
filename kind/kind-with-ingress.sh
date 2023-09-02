@@ -78,15 +78,7 @@ EOF
 
     : Install MetalLb
     kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.10/config/manifests/metallb-native.yaml
-    set +x
-    while true; do
-        if [ -n "$(kubectl get pods -n metallb-system 2> /dev/null)" ]; then
-            break
-        fi
-        sleep 1
-    done
-    kubectl wait pods -n metallb-system -l component=controller --for condition=Ready --timeout=90s
-    kubectl wait pods -n metallb-system -l component=speaker --for condition=Ready --timeout=90s
+    kubectl rollout status deployment/controller -n metallb-system
     kubectl apply -f ${SCRIPT_DIR}/metallb-IPAddressPool.yaml
 
     : Install metrics-server
@@ -96,17 +88,9 @@ EOF
 
     : Install cert-manager
     (set -x; kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.12.0/cert-manager.yaml)
-    while true; do
-        if [ -n "$(kubectl get pods -n cert-manager -l app.kubernetes.io/component=webhook 2> /dev/null)" ]; then
-            break
-        fi
-        sleep 1
-    done
-    (set -x; kubectl wait pods -n cert-manager -l app.kubernetes.io/component=webhook --for condition=Ready --timeout=90s)
-    (set -x; kubectl get deployment.apps -n cert-manager)
-    (set -x; kubectl get pods -n cert-manager)
-    (set -x; kubectl rollout status deployment -n cert-manager -l component=controller --timeout=90s)
-    (set -x; kubectl rollout status deployment -n cert-manager -l component=webhook --timeout=90s)
+    (set -x; kubectl get -n cert-manager deployment.apps,replicaset.apps,pods,service)
+    (set -x; kubectl rollout status deployment -n cert-manager --timeout=90s)
+    (set -x; kubectl get -n cert-manager deployment.apps,replicaset.apps,pods,service)
     : Install Service Binding
     (set -x; kubectl apply -f https://github.com/servicebinding/runtime/releases/download/v0.4.0/servicebinding-runtime-v0.4.0.yaml)
     ;;
