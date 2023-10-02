@@ -15,6 +15,7 @@ $(DIST_DIR)/docker.html \
 $(DIST_DIR)/k8s_kind.html \
 $(DIST_DIR)/k8s_kpack.html \
 $(DIST_DIR)/k8s_tekton.html \
+$(DIST_DIR)/kustomize.html \
 $(DIST_DIR)/index.html
 
 .PHONY: adoc mkdir_and_copy

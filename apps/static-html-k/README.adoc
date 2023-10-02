@@ -1,0 +1,22 @@
+== Deploy
+
+[source,shell]
+.The generated ConfigMap can be examined with the following command:
+----
+kubectl kustomize ./ | kubectl apply -f -
+----
++
+[source,console]
+----
+$ kubectl kustomize ./ | kubectl apply -f -
+configmap/nginx-html-xxxxxxxxxx created
+service/static-html-service created
+deployment.apps/static-html-app created
+----
+
+* Delete apps
++
+[source,shell]
+----
+kubectl kustomize ./ | kubectl delete -f -
+----

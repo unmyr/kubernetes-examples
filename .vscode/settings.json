@@ -106,6 +106,8 @@
         "kubectl",
         "kubelet",
         "Kubernetes",
+        "Kustomization",
+        "kustomize",
         "lachlanevenson",
         "leveloffset",
         "liberica",
