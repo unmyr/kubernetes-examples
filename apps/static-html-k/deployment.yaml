@@ -21,8 +21,14 @@ spec:
         volumeMounts:
         - mountPath: "/usr/share/nginx/html/"
           name: nginx-html-volume
-          readOnly: false
+          readOnly: true
+        - mountPath: "/usr/share/nginx/html/css"
+          name: nginx-html-css-volume
+          readOnly: true
       volumes:
       - name: nginx-html-volume
         configMap:
           name: nginx-html
+      - name: nginx-html-css-volume
+        configMap:
+          name: nginx-html-css

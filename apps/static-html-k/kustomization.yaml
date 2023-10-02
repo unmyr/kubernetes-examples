@@ -9,4 +9,6 @@ configMapGenerator:
   files:
   - html/favicon.ico
   - html/index.html
+- name: nginx-html-css
+  files:
   - html/css/simple_counter_app.css
