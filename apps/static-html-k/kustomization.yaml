@@ -9,3 +9,4 @@ configMapGenerator:
   files:
   - html/favicon.ico
   - html/index.html
+  - html/css/simple_counter_app.css

@@ -627,7 +627,22 @@ https://hub.docker.com/_/python/[python - Official Image | Docker Hub^]
 +
 [source,shell]
 ----
-kubectl run -n "${NAMESPACE:-default}" -it ubuntu --image=ubuntu:22.04 --rm --restart=Never -- /bin/bash
+kubectl run -q -n "${NAMESPACE:-default}" -it ubuntu --image=ubuntu:22.04 --rm --restart=Never -- /bin/bash
+kubectl run -q -n "${NAMESPACE:-default}" -it ubuntu --image=ubuntu:latest --rm --restart=Never -- /bin/bash
+----
++
+[source,shell]
+.dig, etc
+----
+apt update
+apt-get install dnsutils
+----
++
+[source,shell]
+.ip addr, ss, etc
+----
+apt update
+apt install iproute2 -y
 ----
 +
 [source,shell]

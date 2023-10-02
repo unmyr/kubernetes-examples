@@ -59,6 +59,7 @@
         "dearmor",
         "debuginfo",
         "Djava",
+        "dnsutils",
         "dockerconfigjson",
         "Dorg",
         "dpkg",

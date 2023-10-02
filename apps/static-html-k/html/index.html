@@ -6,24 +6,30 @@
     <title>Static html example</title>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <link rel="icon" sizes="32x32" href="/favicon.ico">
+    <link rel="stylesheet" href="simple_counter_app.css">
   </head>
   <body>
     <h1>Hello React CDN</h1>
-    <div id="app"></div>
+    <div id="simple-counter-area"></div>
     <script type="text/babel">
       const useState = React.useState;
       const Counter = () => {
         const [count, setCount] = React.useState(0);
         const increment = () => setCount((count) => count + 1);
+        const decrement = () => setCount((count) => count - 1);
         return (
-          <div><button onClick={increment}>count is {count}</button></div>
+          <div>
+            <div style={{fontSize: "20px"}}>count is {count}</div>
+            <button className="counterButton" onClick={increment}>+ 1</button>
+            <button className="counterButton" onClick={decrement}>- 1</button>
+          </div>
         )
       };
-      const container = document.getElementById("app");
+      const container = document.getElementById("simple-counter-area");
       const root = ReactDOM.createRoot(container);
-      root.render(<Counter/>);
+      root.render(<React.StrictMode><Counter/></React.StrictMode>);
     </script>
-  </body>
+</body>
 </html>
