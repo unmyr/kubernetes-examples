@@ -7,6 +7,7 @@
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-router-dom@5/umd/react-router-dom.min.js"></script>
     <link rel="icon" sizes="32x32" href="/favicon.ico">
     <link rel="stylesheet" href="simple_counter_app.css">
   </head>
@@ -15,6 +16,8 @@
     <div id="simple-counter-area"></div>
     <script type="text/babel">
       const useState = React.useState;
+      const { HashRouter, Route, Link, useParams, useHistory } = ReactRouterDOM;
+
       const Counter = () => {
         const [count, setCount] = React.useState(0);
         const increment = () => setCount((count) => count + 1);
@@ -27,9 +30,23 @@
           </div>
         )
       };
+
+      const Home = () => {
+        return (<div>Hello world!</div>)
+      }
+
       const container = document.getElementById("simple-counter-area");
       const root = ReactDOM.createRoot(container);
-      root.render(<React.StrictMode><Counter/></React.StrictMode>);
+      root.render(
+        <React.StrictMode>
+          <HashRouter>
+            <div><Link to="/">Home</Link> | <Link to="/counter">Counter</Link></div>
+            <br/>
+            <Route path="/" exact component={Home} />
+            <Route path="/counter" exact component={Counter} />
+          </HashRouter>
+        </React.StrictMode>
+      );
     </script>
-</body>
+  </body>
 </html>
