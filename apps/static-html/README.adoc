@@ -1,0 +1,22 @@
+=== Deploy web apps
+
+[source,console]
+----
+$ kubectl apply -f ./apps.yaml
+configmap/nginx-html created
+pod/static-html-pod created
+service/static-html-service created
+----
+
+[source,console]
+----
+$ kubectl get -f ./apps.yaml
+NAME                   DATA   AGE
+configmap/nginx-html   1      8s
+
+NAME                  READY   STATUS    RESTARTS   AGE
+pod/static-html-pod   1/1     Running   0          8s
+
+NAME                          TYPE           CLUSTER-IP      EXTERNAL-IP      PORT(S)          AGE
+service/static-html-service   LoadBalancer   10.96.213.107   172.18.254.242   3000:30462/TCP   8s
+----

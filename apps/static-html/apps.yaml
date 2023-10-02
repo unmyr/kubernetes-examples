@@ -1,0 +1,58 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-html
+  namespace: demo
+  labels:
+    app: static-html-app
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Static html example</title>
+      </head>
+      <body>
+        <h1>Hello world</h1>
+      </body>
+    </html>
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: static-html-pod
+  namespace: demo
+  labels:
+    app: static-html-app
+spec:
+  containers:
+  - name: server
+    image: nginx
+    imagePullPolicy: Always
+    ports:
+    - containerPort: 80
+    volumeMounts:
+    - mountPath: "/usr/share/nginx/html/"
+      name: nginx-html-volume
+      readOnly: true
+  volumes:
+  - name: nginx-html-volume
+    configMap:
+      name: nginx-html
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: static-html-service
+  namespace: demo
+spec:
+  type: LoadBalancer
+  selector:
+    app: static-html-app
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 80
+      protocol: TCP
