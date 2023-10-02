@@ -31,6 +31,34 @@
         )
       };
 
+      const Login = () => {
+        const [username, setUsername] = useState('')
+        const [password, setPassword] = useState('')
+        const updateUsername = (e) => setUsername(_prevState => e.target.value);
+        const updatePassword = (e) => setPassword(_prevState => e.target.value);
+        const handleSend = (e) => {
+          e.preventDefault();
+          console.log(
+            "handleSend(): " + "username='" + username + "', password='" + password + "'"
+          );
+        }
+
+        return (
+          <div>
+            <form onSubmit={handleSend}>
+              <label htmlFor="username">Username:</label>
+              <input id="username" type="text" onChange={updateUsername}/><br/>
+              <label htmlFor="password">Password:</label>
+              <input id="password" type="password" onChange={updatePassword}/>
+              <div>
+                <button id="submit" type="submit">Submit</button>
+              </div>
+            </form>
+            <div>{username}:{password}</div>
+          </div>
+        )
+      };
+
       const Home = () => {
         return (<div>Hello world!</div>)
       }
@@ -40,10 +68,15 @@
       root.render(
         <React.StrictMode>
           <HashRouter>
-            <div><Link to="/">Home</Link> | <Link to="/counter">Counter</Link></div>
+            <div>
+              <Link to="/">Home</Link> |
+              <Link to="/counter">Counter</Link> |
+              <Link to="/login">Login</Link>
+            </div>
             <br/>
             <Route path="/" exact component={Home} />
             <Route path="/counter" exact component={Counter} />
+            <Route path="/login" exact component={Login} />
           </HashRouter>
         </React.StrictMode>
       );
