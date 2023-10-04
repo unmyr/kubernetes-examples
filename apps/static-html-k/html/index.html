@@ -31,6 +31,33 @@
         )
       };
 
+      const List = () => {
+        const [items, setItems] = useState([])
+        const removeItem = (id) => {
+          const updatedList = items.filter((item, index) => index !== id);
+          setItems(updatedList);
+        };
+        return (
+          <div>
+            <button
+              className='addItemButton'
+              onClick={() => setItems([...items, 'new item'])}
+            >Add item</button>
+            <div className='listContainer'>
+              {
+                items.map((item, index) => (
+                  <div key={index} className='listItem'>{item}
+                    <button className='deleteButton'
+                    onClick={() => removeItem(index)}
+                    >X</button>
+                  </div>
+                ))
+              }
+            </div>
+          </div>
+        )
+      }
+
       const Login = () => {
         const [username, setUsername] = useState('')
         const [password, setPassword] = useState('')
@@ -63,23 +90,42 @@
         return (<div>Hello world!</div>)
       }
 
+      const App = () => {
+        return (
+          <div>
+            <React.StrictMode>
+              <HashRouter>
+                <div>
+                  <Link to="/">
+                    <span className='tabItem'>Home</span>
+                  </Link>
+                  <span className='tabSeparator'>|</span>
+                  <Link to="/counter">
+                    <span className='tabItem'>Counter</span>
+                  </Link>
+                  <span className='tabSeparator'>|</span>
+                  <Link to="/list">
+                    <span className='tabItem'>List</span>
+                  </Link>
+                  <span className='tabSeparator'>|</span>
+                  <Link to="/login">
+                    <span className='tabItem'>Login</span>
+                  </Link>
+                </div>
+                <br/>
+                <Route path="/" exact component={Home} />
+                <Route path="/counter" exact component={Counter} />
+                <Route path="/list" exact component={List} />
+                <Route path="/login" exact component={Login} />
+              </HashRouter>
+            </React.StrictMode>
+          </div>
+        )
+      }
+
       const container = document.getElementById("simple-counter-area");
       const root = ReactDOM.createRoot(container);
-      root.render(
-        <React.StrictMode>
-          <HashRouter>
-            <div>
-              <Link to="/">Home</Link> |
-              <Link to="/counter">Counter</Link> |
-              <Link to="/login">Login</Link>
-            </div>
-            <br/>
-            <Route path="/" exact component={Home} />
-            <Route path="/counter" exact component={Counter} />
-            <Route path="/login" exact component={Login} />
-          </HashRouter>
-        </React.StrictMode>
-      );
+      root.render(<App/>);
     </script>
   </body>
 </html>
