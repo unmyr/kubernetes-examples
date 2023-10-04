@@ -94,7 +94,7 @@ docker.io/library/greet-python             0.1                  47e9771612ca4   
 +
 [source,console]
 ----
-$ kubectl apply -f ../../kind/greet-python.pod.yaml
+$ kubectl apply -f ../greet-python.pod.yaml
 pod/greet-python-pod created
 service/greet-python-service created
 $ kubectl get service greet-python-service
@@ -160,7 +160,7 @@ $ curl -s http://$(kubectl get services greet-python-service -o jsonpath='{.stat
 +
 [source,console]
 ----
-$ kubectl delete -f ../../kind/greet-python.pod.yaml
+$ kubectl delete -f ../greet-python.pod.yaml
 pod "greet-python-pod" deleted
 service "greet-python-service" deleted
 ----
