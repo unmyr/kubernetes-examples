@@ -1173,6 +1173,13 @@ docker exec ${KUBE_NODENAME} rmdir ${MOUNT_POINT}
 
 === Get information
 
+* List resource type short names
++
+[source,shell]
+----
+kubectl api-resources
+----
+
 * Listing all resources in a namespace
 +
 [source,shell]
@@ -1183,6 +1190,13 @@ kubectl api-resources --verbs=list --namespaced -o name | python3 -c "import sub
 [source,shell]
 ----
 kubectl api-resources --verbs=list --namespaced -o name | grep -vE '^(events|events\.events\.k8s\.io)$' | tr "\n" "," | sed -e 's/,$//' | xargs kubectl get -n "${NAMESPACE}"
+----
+
+* Filter by labels
++
+[source,shell]
+----
+kubectl get -n "${NAMESPACE}" -l app=static-html-app cm,deploy,svc
 ----
 
 * Resource
