@@ -3,11 +3,10 @@ apiVersion: v1
 kind: Service
 metadata:
   name: static-html-service
-  namespace: demo
 spec:
   type: LoadBalancer
   selector:
-    app: static-html-app
+    app: static-html-app      # This field will be replaced by the kustomize.
   ports:
     - name: http
       port: 3000

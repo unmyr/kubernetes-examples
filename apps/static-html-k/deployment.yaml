@@ -5,12 +5,12 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app: static-html-app
+      app: static-html-app    # This field will be replaced by the kustomize.
   replicas: 2
   template:
     metadata:
       labels:
-        app: static-html-app
+        app: static-html-app  # This field will be replaced by the kustomize.
     spec:
       containers:
       - name: server

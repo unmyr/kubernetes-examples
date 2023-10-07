@@ -1,22 +1,95 @@
-== Deploy
+== Description
 
+== Setup
+
+. Create namespace
++
+[source,shell]
+----
+kubectl create ns static-html-k
+----
+
+== Apply/Delete apps
+
+* Deploy apps
++
 [source,shell]
 .The generated ConfigMap can be examined with the following command:
 ----
-kubectl kustomize ./ | kubectl apply -f -
+kubectl kustomize ./ | tee .kustomization-out.yaml | kubectl apply -f -
 ----
 +
 [source,console]
 ----
 $ kubectl kustomize ./ | kubectl apply -f -
 configmap/nginx-html-xxxxxxxxxx created
+configmap/nginx-html-css-xxxxxxxxxx created
 service/static-html-service created
 deployment.apps/static-html-app created
 ----
 
 * Delete apps
+
+** Delete using kustomize outputs
 +
 [source,shell]
 ----
 kubectl kustomize ./ | kubectl delete -f -
+----
+
+** Delete using a common label
++
+[source,shell]
+----
+NAMESPACE="static-html-k"
+kubectl delete -n "${NAMESPACE}" -l app=static-html-app cm,deploy,svc
+----
+
+=== Show information
+
+* List all resources
++
+[source,shell]
+----
+NAMESPACE="static-html-k"
+kubectl api-resources --verbs=list --namespaced -o name | python3 -c "import subprocess, sys; subprocess.run(['kubectl', 'get', '-n', '${NAMESPACE}', ','.join([x for x in sys.stdin.read().split() if x not in ['events.events.k8s.io', 'events']])])"
+----
+
+* Show delete targets
++
+[source,shell]
+----
+NAMESPACE="static-html-k"
+kubectl get -n "${NAMESPACE}" -l app=static-html-app cm,deploy,svc
+----
+
+* Show all resources
++
+[source,shell]
+----
+kubectl get -n "${NAMESPACE}" -l app=static-html-app cm,endpointslices,ep,svc,deploy,rs,pods
+----
+
+* Show ConfigMaps
++
+[source,shell]
+----
+NAMESPACE="static-html-k"
+kubectl get -n "${NAMESPACE}" configmaps
+----
+
+* Show deployment
++
+[source,shell]
+----
+NAMESPACE="static-html-k"
+kubectl get -n "${NAMESPACE}" deployments
+----
+
+* Show `nginx.conf` file
++
+[source,shell]
+----
+NAMESPACE="static-html-k"
+kubectl get -n "${NAMESPACE}" pods -l app=static-html-app -o name | head -1 | while read POD_NAME; do (set -x; kubectl exec -n "${NAMESPACE}" "${POD_NAME}" -- cat /etc/nginx/nginx.conf); done
 ----
