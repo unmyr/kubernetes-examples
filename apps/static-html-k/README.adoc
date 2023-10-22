@@ -45,6 +45,14 @@ NAMESPACE="static-html-k"
 kubectl delete -n "${NAMESPACE}" -l app=static-html-app cm,deploy,svc
 ----
 
+=== Restart deployment
+
+[source,shell]
+----
+NAMESPACE="static-html-k"
+kubectl rollout restart -n "${NAMESPACE}" deployments/static-html-app
+----
+
 === Show information
 
 * List all resources
@@ -84,6 +92,20 @@ kubectl get -n "${NAMESPACE}" configmaps
 ----
 NAMESPACE="static-html-k"
 kubectl get -n "${NAMESPACE}" deployments
+----
+
+* Show logs
++
+[source,shell]
+----
+NAMESPACE="static-html-k"
+kubectl logs -n "${NAMESPACE}" deployments/static-html-app
+----
++
+[source,shell]
+----
+NAMESPACE="static-html-k"
+kubectl get -n "${NAMESPACE}" pods -l app=static-html-app -o name | while read POD_NAME; do (set -x; kubectl logs -n "${NAMESPACE}" "${POD_NAME}"); done
 ----
 
 * Show `nginx.conf` file
