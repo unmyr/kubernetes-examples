@@ -1199,6 +1199,55 @@ kubectl api-resources --verbs=list --namespaced -o name | grep -vE '^(events|eve
 kubectl get -n "${NAMESPACE}" -l app=static-html-app cm,deploy,svc
 ----
 
+* Filter by status
+
+** List `Running` pods
++
+[source,shell]
+----
+kubectl get -A --field-selector=status.phase=Running pods
+----
++
+[source,console]
+----
+$ kubectl get -A --field-selector=status.phase=Running pods
+NAMESPACE               NAME                                                 READY   STATUS             RESTARTS       AGE
+...
+demo                    greet-python-pod                                     1/1     Running            6 (35m ago)    19d
+...
+static-html-k           static-html-app-7fdb5f6f56-hjn52                     0/1     ImagePullBackOff   1 (8h ago)     14d
+----
+
+** List `Failed` pods
++
+[source,shell]
+----
+kubectl get -A --field-selector=status.phase=Failed pods
+----
++
+[source,console]
+----
+$ kubectl get -A --field-selector=status.phase=Failed pods
+NAMESPACE   NAME     READY   STATUS    RESTARTS   AGE
+default     curl     0/1     Unknown   0          21d
+default     python   0/1     Unknown   0          21d
+----
+
+** List `Succeeded` pods
++
+[source,shell]
+----
+kubectl get -A --field-selector=status.phase=Succeeded pods
+----
++
+[source,console]
+----
+$ kubectl get -A --field-selector=status.phase=Succeeded pods
+NAMESPACE        NAME                            READY   STATUS      RESTARTS   AGE
+projectcontour   contour-certgen-v1-26-0-rg8ng   0/1     Completed   0          49d
+----
+
+
 * Resource
 
 ** Show node usage
