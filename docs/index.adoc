@@ -623,32 +623,54 @@ kubectl run -q -n "${NAMESPACE:-default}" -it python --image=python:3.8-slim-bus
 ----
 https://hub.docker.com/_/python/[python - Official Image | Docker Hub^]
 
+* Run nginx image +
+https://hub.docker.com/_/nginx/[nginx - Official Image | Docker Hub^]
++
+[source,shell]
+----
+kubectl run -q -n "${NAMESPACE:-default}" --image=nginx nginx -it --rm --restart=Never -- /bin/bash
+----
+
 * Run ubuntu image
 +
 [source,shell]
 ----
-kubectl run -q -n "${NAMESPACE:-default}" -it ubuntu --image=ubuntu:22.04 --rm --restart=Never -- /bin/bash
-kubectl run -q -n "${NAMESPACE:-default}" -it ubuntu --image=ubuntu:latest --rm --restart=Never -- /bin/bash
+kubectl run -q -n "${NAMESPACE:-default}" ubuntu -it --image=ubuntu:22.04 --rm --restart=Never -- /bin/bash
+kubectl run -q -n "${NAMESPACE:-default}" ubuntu -it --image=ubuntu:latest --rm --restart=Never -- /bin/bash
+kubectl run -q -n "${NAMESPACE:-default}" ubuntu -it --image=ubuntu:latest --rm --restart=Never --overrides='{ "apiVersion": "v1", "spec": { "dnsConfig": { "nameservers" : [ "8.8.8.8" ] } } }' -- /bin/bash
+----
+
+** `delv`, `dig`, `nslookup`, `nsupdate`, etc
++
+[source,shell]
+.Alias of `bind9-dnsutils`
+----
+apt update
+apt-get install -y dnsutils
 ----
 +
 [source,shell]
-.dig, etc
+.bind9-dnsutils
 ----
 apt update
-apt-get install dnsutils
+apt-get install -y bind9-dnsutils
 ----
+
+** `ip`, `ss`, etc
 +
 [source,shell]
-.ip addr, ss, etc
+.iproute2
 ----
 apt update
-apt install iproute2 -y
+apt install -y iproute2
 ----
+
+** `openssl`
 +
 [source,shell]
 ----
 apt-get update
-apt-get install openssl
+apt-get install -y openssl
 ----
 
 ==== Logs
