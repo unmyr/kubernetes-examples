@@ -30,6 +30,7 @@
         "bgppeers",
         "buildpacks",
         "cainjector",
+        "certgen",
         "certifi",
         "chdir",
         "clusterbinding",

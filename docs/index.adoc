@@ -1564,6 +1564,14 @@ install -m 755 kubectl $HOME/bin/
 rm kubectl
 ----
 
+. Add bash completion
++
+[source,shell]
+----
+kubectl completion bash | sudo tee /etc/bash_completion.d/kubectl > /dev/null
+exec $SHELL -l
+----
+
 === Install kubectl using apt package manager
 
 . Update the `apt` package index and install packages needed to use the Kubernetes `apt` repository:
