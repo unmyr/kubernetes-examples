@@ -72,6 +72,7 @@
         "esac",
         "ESTAB",
         "eventlistener",
+        "GOPATH",
         "hamcrest",
         "hasindexes",
         "hasrules",
