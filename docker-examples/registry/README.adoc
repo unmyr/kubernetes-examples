@@ -1,0 +1,265 @@
+== Docker Registry V2
+
+=== Setup
+
+. Check existing TCP listen ports
++
+[source,shell]
+----
+sudo lsof -nP -iTCP -sTCP:LISTEN
+----
+
+. Create directory
++
+[source,shell]
+----
+sudo install -d -m 755 /var/docker/private-registry
+----
+
+. Create a `.env` file for docker compose.
++
+[source,shell]
+.env
+----
+REGISTRY_HTTP_TLS_CERTIFICATE=/certs/docker-registry.crt
+REGISTRY_HTTP_TLS_KEY=/certs/docker-registry.key
+----
+
+=== Manage container
+
+* Start a container
++
+[source,shell]
+----
+docker compose up -d
+----
++
+[source,console]
+----
+$ docker compose up -d
+[+] Running 3/3
+ ✔ Network registry_default               Created                                                                                0.1s 
+ ✔ Volume "registry_my-private-registry"  Created                                                                                0.0s 
+ ✔ Container my-private-registry          Started                           
+----
+
+* Stop a container
++
+[source,shell]
+----
+docker compose down
+----
+
+* Show information
+
+** Show logs in container
++
+[source,shell]
+----
+docker logs my-private-registry
+----
+
+** Show docker the volume
++
+[source,shell]
+----
+docker volume ls --filter Name=my-private-registry
+----
+
+* Debug a container
++
+[source,shell]
+----
+docker exec -it my-private-registry /bin/sh
+----
+
+* Remove volumes
++
+[source,shell]
+----
+docker volume rm $(docker volume ls --filter Name=my-private-registry --format '{{.Name}}')
+----
+
+=== Test docker registry
+
+. Set shell variable
++
+[source,shell]
+----
+MY_PRIVATE_REGISTRY="docker.example.internal:5443"
+REPO="hello-world"
+----
+
+. Test connection
++
+[source,shell]
+----
+curl https://${MY_PRIVATE_REGISTRY}/v2/_catalog
+----
++
+[source,json]
+----
+{"repositories":[]}
+----
+
+. Pull image
++
+[source,shell]
+----
+docker pull ${REPO}
+----
++
+[source,console]
+----
+$ docker pull ${REPO}
+Using default tag: latest
+latest: Pulling from library/hello-world
+Digest: sha256:88ec0acaa3ec199d3b7eaf73588f4518c25f9d34f58ce9a0df68429c5af48e8d
+Status: Image is up to date for hello-world:latest
+docker.io/library/hello-world:latest
+----
+
+* Add tag
++
+[source,shell]
+----
+docker image tag hello-world:latest ${MY_PRIVATE_REGISTRY}/${REPO}:latest
+----
+
+* Push the image
++
+[source,shell]
+----
+docker push ${MY_PRIVATE_REGISTRY}/${REPO}
+----
++
+[source,console]
+----
+$ docker push docker.example.internal:5443/hello-world
+Using default tag: latest
+The push refers to repository [docker.example.internal:5443/hello-world]
+01bb4fce3eb1: Pushed 
+latest: digest: sha256:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx size: 525
+----
+
+. Get catalog
++
+[source,shell]
+----
+curl --cacert certs/docker-registry.crt https://${MY_PRIVATE_REGISTRY}/v2/_catalog
+----
++
+[source,json]
+----
+{"repositories":["hello-world"]}
+----
+
+. Get manifest
++
+[source,shell]
+----
+curl -i -X GET --cacert certs/docker-registry.crt ${MY_PRIVATE_REGISTRY}/v2/${REPO}/manifests/latest
+----
+
+. Run the image
++
+[source,shell]
+----
+docker run --name "${REPO}-${RANDOM}" --rm "${MY_PRIVATE_REGISTRY}/${REPO}"
+----
++
+[source,console]
+----
+$ docker run --name "${REPO}-${RANDOM}" --rm "${MY_PRIVATE_REGISTRY}/${REPO}"
+
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+...snip...
+----
+
+. Remove the image
++
+[source,shell]
+----
+docker rmi ${MY_PRIVATE_REGISTRY}/${REPO}
+----
++
+[source,console]
+----
+$ docker rmi ${MY_PRIVATE_REGISTRY}/${REPO}
+Untagged: docker.example.internal:5443/hello-world:latest
+Untagged: docker.example.internal:5443/hello-world@sha256:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+----
+
+==== Tags
+
+* List tags
++
+[source,shell]
+----
+curl -X GET --cacert certs/docker-registry.crt https://${MY_PRIVATE_REGISTRY}/v2/${REPO}/tags/list
+----
++
+[source,json]
+----
+{"name":"hello-world","tags":["latest"]}
+----
+
+* Delete digest
++
+--
+. Show digest
++
+[source,shell]
+----
+DIGEST=$(curl \
+-H "Accept: application/vnd.docker.distribution.manifest.v2+json" \
+-H "Accept: application/vnd.docker.distribution.manifest.list.v2+json" \
+-I -s "https://${MY_PRIVATE_REGISTRY}/v2/${REPO}/manifests/latest" | \
+sed -e '/docker-content-digest/!d; s/docker-content-digest: //; s/\r//')
+----
+
+. Delete digest
++
+[source,shell]
+----
+curl -X DELETE \
+-H "Accept: application/vnd.docker.distribution.manifest.v2+json" \
+-H "Accept: application/vnd.docker.distribution.manifest.list.v2+json" \
+--head \
+--cacert certs/docker-registry.crt \
+"https://${MY_PRIVATE_REGISTRY}/v2/${REPO}/manifests/${DIGEST}"
+----
+
+. Delete tag
++
+[source,shell]
+----
+TAG="latest"
+(set -x; curl -X DELETE \
+-H "Accept: application/vnd.docker.distribution.manifest.v2+json" \
+-H "Accept: application/vnd.docker.distribution.manifest.list.v2+json" \
+--head \
+--cacert certs/docker-registry.crt \
+"https://${MY_PRIVATE_REGISTRY}/v2/${REPO}/manifests/${TAG}")
+----
+--
+
+* Debug a container
++
+[source,shell]
+----
+docker exec -it my-private-registry -- rm -rf /var/lib/registry/docker/registry/v2/repositories/${REPO}/
+----
++
+[source,shell]
+----
+ls /var/lib/registry/docker/registry/v2/repositories
+----
+
+* Verify removed
++
+[source,shell]
+----
+curl https://${MY_PRIVATE_REGISTRY}/v2/_catalog
+----

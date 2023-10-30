@@ -1,0 +1,21 @@
+version: "3.8"
+
+services:
+  private-registry:
+    restart: always
+    # https://hub.docker.com/_/registry/
+    image: registry:2.8.3
+    container_name: my-private-registry
+    ports:
+      - 5443:5000
+    env_file: .env
+    volumes:
+      - type: volume
+        source: my-private-registry
+        target: /var/lib/registry
+      - type: bind
+        source: ./certs
+        target: /certs
+        read_only: true
+volumes:
+  my-private-registry:
