@@ -135,6 +135,7 @@
         "newgrp",
         "newkey",
         "NOARP",
+        "noauth",
         "NODELAY",
         "nodename",
         "nodeport",
