@@ -263,3 +263,69 @@ ls /var/lib/registry/docker/registry/v2/repositories
 ----
 curl https://${MY_PRIVATE_REGISTRY}/v2/_catalog
 ----
+
+=== Test Kubectl
+
+[source,shell]
+----
+apt-get update
+apt-get install -y curl
+cat > /docker-registry.crt <<EOF
+...
+EOF
+
+MY_PRIVATE_REGISTRY="docker.example.internal:5443"
+curl --cacert /docker-registry.crt https://${MY_PRIVATE_REGISTRY}/v2/_catalog
+
+mv /docker-registry.crt /usr/local/share/ca-certificates/
+update-ca-certificates
+
+curl https://${MY_PRIVATE_REGISTRY}/v2/_catalog
+----
+
+[source,shell]
+----
+./test-docker-private-registry.sh create
+./test-docker-private-registry.sh delete
+----
+
+[source,console]
+----
+$ ./test-docker-private-registry.sh create
++ kubectl create ns my-private-registry-demo
+namespace/my-private-registry-demo created
++ kubectl create -n my-private-registry-demo configmap ca-pem-store --from-file=certs/docker-registry.crt
+configmap/ca-pem-store created
++ kubectl create -n my-private-registry-demo configmap private-registry --from-env-file=./.env.test
+configmap/private-registry created
++ kubectl create -n my-private-registry-demo -f test-docker-private-registry.yaml
+pod/test-docker-private-registry created
++ kubectl wait -n my-private-registry-demo --for=condition=Ready --timeout=60s pod/test-docker-private-registry
+pod/test-docker-private-registry condition met
++ kubectl get pods -n my-private-registry-demo
+NAME                           READY   STATUS    RESTARTS   AGE
+test-docker-private-registry   1/1     Running   0          21s
++ kubectl describe pods -n my-private-registry-demo
+Name:             test-docker-private-registry
+Namespace:        my-private-registry-demo
+...snip...
+Events:
+  Type    Reason     Age   From               Message
+  ----    ------     ----  ----               -------
+  Normal  Scheduled  20s   default-scheduler  Successfully assigned my-private-registry-demo/test-docker-private-registry to kind-1-worker
+  Normal  Pulled     18s   kubelet            Container image "ubuntu:22.04" already present on machine
+  Normal  Created    18s   kubelet            Created container default
+  Normal  Started    18s   kubelet            Started container default
++ kubectl exec -n my-private-registry-demo -it pod/test-docker-private-registry -- curl https://docker.example.internal:5443/v2/_catalog
+{"repositories":[]}
+
+$ ./test-docker-private-registry.sh delete
++ kubectl delete -n my-private-registry-demo -f test-docker-private-registry.yaml
+pod "test-docker-private-registry" deleted
++ kubectl delete -n my-private-registry-demo configmap private-registry
+configmap "private-registry" deleted
++ kubectl delete -n my-private-registry-demo configmap ca-pem-store
+configmap "ca-pem-store" deleted
++ kubectl delete ns my-private-registry-demo
+namespace "my-private-registry-demo" deleted
+----

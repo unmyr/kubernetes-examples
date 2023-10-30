@@ -1,3 +1,4 @@
 # SSL Certificates
 certs/*.crt
 certs/*.key
+test-docker-private-registry.yaml
