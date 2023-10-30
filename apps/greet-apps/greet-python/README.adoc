@@ -6,25 +6,25 @@
 
 . Build docker.
 +
-[source,console]
+[source,shell]
 ----
-$ docker image build --tag greet-python:0.1 .
+docker image build --tag greet-python:0.1 .
 ----
 
 . Run docker
 +
-[source,console]
+[source,shell]
 ----
-$ docker run --name greet-python -p 8080:8080 --rm -d greet-python:0.1
+docker run --name greet-python -p 8080:8080 --rm -d greet-python:0.1
 ----
 
-==== Using docker-compose
+==== Using Docker Compose V2
 
 . Run docker container:
 +
-[source,console]
+[source,shell]
 ----
-$ docker-compose up --build -d
+docker compose up --build -d
 ----
 
 === Test docker image
@@ -36,9 +36,9 @@ $ docker-compose up --build -d
 docker container ls --filter name=greet-python
 ----
 +
-[source,console]
+[source,shell]
 ----
-$ docker ps --filter name=greet-python
+docker ps --filter name=greet-python
 ----
 
 . Request to docker
@@ -61,16 +61,16 @@ $ curl http://$(docker inspect --format='{{range .NetworkSettings.Networks}}{{.I
 
 ** Using docker
 +
-[source,console]
+[source,shell]
 ----
-$ docker stop greet-python
+docker stop greet-python
 ----
 
-** Using docker-compose
+** Using docker compose
 +
-[source,console]
+[source,shell]
 ----
-$ docker-compose down
+docker compose down
 ----
 
 === Deploy

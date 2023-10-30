@@ -8,7 +8,7 @@ SCHEMA_NAME=db_user1
 
 start:
 	@echo -n "+ "
-	docker-compose up -d
+	docker compose up -d
 	@echo -n "+ "
 	docker ps -a --filter "name=postgres" --format "{{.State}} {{.Status}}"
 	@echo -n "+ "
@@ -61,7 +61,7 @@ sql:
 
 stop:
 	@echo -n "+ "
-	docker-compose down
+	docker compose down
 	@echo -n "+ "
 	sudo rm -fR $(DATA_DIR)
 

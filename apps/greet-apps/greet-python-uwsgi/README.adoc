@@ -18,13 +18,13 @@ $ docker image build --tag greet-python:0.1 .
 $ docker run --name greet-python -p 8080:8080 --rm -d greet-python:0.1
 ----
 
-==== Using docker-compose
+==== Using Docker Compose V2
 
 . Run docker container:
 +
-[source,console]
+[source,shell]
 ----
-$ docker-compose up --build -d
+docker compose up --build -d
 ----
 
 === Test docker image
@@ -36,9 +36,9 @@ $ docker-compose up --build -d
 docker container ls -a --filter name=greet-python
 ----
 +
-[source,console]
+[source,shell]
 ----
-$ docker ps -a --filter name=greet-python
+docker ps -a --filter name=greet-python
 ----
 
 . Request to docker
@@ -61,16 +61,16 @@ $ curl -s http://$(docker inspect --format='{{range .NetworkSettings.Networks}}{
 
 ** Using docker
 +
-[source,console]
+[source,shell]
 ----
-$ docker stop greet-python
+docker stop greet-python
 ----
 
-** Using docker-compose
+** Using Docker Compose V2
 +
-[source,console]
+[source,shell]
 ----
-$ docker-compose down
+docker compose down
 ----
 
 === Deploy
@@ -229,11 +229,11 @@ $ docker image ls --filter "reference=greet-python*" --format '{{.ID}}' | xargs 
 
 **Symptom**
 
-* Successful execution of uwsgi inside a Docker container, but an error when started from docker-compose.
+* Successful execution of uwsgi inside a Docker container, but an error when started from `docker compose`.
 
 [source,console]
 ----
-$ docker-compose up --build -d
+$ docker compose up --build -d
 ...
 $ docker ps -a --filter name=greet-python
 CONTAINER ID   IMAGE              COMMAND                  CREATED          STATUS                      PORTS     NAMES
@@ -246,7 +246,7 @@ unable to load configuration from /opt/app/bin/uwsgi
 
 **Cause**
 
-It failed because docker-compose ran the following command:
+It failed because `docker compose` ran the following command:
 
 [source,shell]
 ----

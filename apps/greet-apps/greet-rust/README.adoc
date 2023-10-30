@@ -117,17 +117,17 @@ $ docker network rm greet-net
 
 ==== Docker compose
 
-. Install `docker-compose`
+. Install Docker Compose V2
 +
-[source,console]
+[source,shell]
 ----
-$ sudo apt install docker-compose
+sudo apt-get install docker-compose-plugin
 ----
 
 . Start docker container
 +
 ----
-$ docker-compose up -d
+$ docker compose up -d
 Creating network "greet-rust_greet-net" with driver "bridge"
 Creating greet-rust ... done
 ----
@@ -154,7 +154,7 @@ $ curl -s http://172.19.0.100:8080/hello/John | python3 -m json.tool
 +
 [source,console]
 ----
-$ docker-compose down
+$ docker compose down
 Stopping greet-rust ... done
 Removing greet-rust ... done
 Removing network greet-rust_greet-net

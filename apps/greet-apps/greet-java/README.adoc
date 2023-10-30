@@ -57,7 +57,7 @@ $ mvn spring-boot:build-image
 +
 [source,console]
 ----
-$ docker-compose up -d
+$ docker compose up -d
 Creating network "greet-java_default" with the default driver
 Creating greet-java ... done
 ----
@@ -82,7 +82,7 @@ $ curl -s http://$(docker inspect --format='{{range .NetworkSettings.Networks}}{
 +
 [source,console]
 ----
-$ docker-compose down
+$ docker compose down
 Stopping greet-java ... done
 Removing greet-java ... done
 Removing network greet-java_default

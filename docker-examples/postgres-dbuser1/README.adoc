@@ -2,7 +2,7 @@
 
 === Setup
 
-. Create a `.env` file for docker-compose.
+. Create a `.env` file for Docker Compose.
 +
 [source,shell]
 .env
@@ -33,9 +33,9 @@ localhost:5432:fruits:postgres:********
 localhost:5432:postgres:postgres:********
 ----
 +
-[source,console]
+[source,shell]
 ----
-$ chmod 600 ~/.pgpass
+chmod 600 ~/.pgpass
 ----
 
 === Manage container
@@ -44,13 +44,14 @@ $ chmod 600 ~/.pgpass
 +
 [source,shell]
 ----
-docker-compose up -d
+docker compose up -d
 ----
 
 * Stop a container
 +
+[source,shell]
 ----
-docker-compose down
+docker compose down
 ----
 
 * Show logs in container

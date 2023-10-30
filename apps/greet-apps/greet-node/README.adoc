@@ -61,7 +61,7 @@ greet-node   latest    71b4e1f30795   About a minute ago   200MB
 +
 [source,shell]
 ----
-docker-compose up -d
+docker compose up -d
 ----
 
 . Check docker running
@@ -96,7 +96,7 @@ $ curl -s http://$(docker inspect --format='{{range .NetworkSettings.Networks}}{
 +
 [source,shell]
 ----
-docker-compose down
+docker compose down
 ----
 
 [NOTE]

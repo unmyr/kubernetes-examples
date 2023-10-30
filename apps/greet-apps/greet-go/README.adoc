@@ -101,11 +101,11 @@ greet-go     latest    8e9675951312   About a minute ago   99.6MB
 docker run --name greet-go -p 8080:8080 --rm -d greet-go:0.1
 ----
 
-* Using docker-compose
+* Using Docker Compose V2
 +
 [source,shell]
 ----
-docker-compose up -d
+docker compose up -d
 ----
 
 . Check docker running
@@ -145,11 +145,11 @@ $ curl -s http://172.17.0.2:8080/api/greet/John | python3 -m json.tool
 docker stop greet-go
 ----
 
-* Using docker-compose
+* Using Docker Compose V2
 +
 [source,shell]
 ----
-docker-compose down
+docker compose down
 ----
 
 [NOTE]
