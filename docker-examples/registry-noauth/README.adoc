@@ -27,7 +27,22 @@ REGISTRY_HTTP_TLS_KEY=/certs/docker-registry.key
 
 === Manage container
 
-* Start a container
+. Create volume
++
+[source,shell]
+----
+REGISTRY_VOLUME_NAME="my-private-registry"
+docker volume create --driver "local" "${REGISTRY_VOLUME_NAME}"
+----
+
+. Show docker the volume
++
+[source,shell]
+----
+docker volume ls --filter Name=my-private-registry
+----
+
+. Start a container
 +
 [source,shell]
 ----
@@ -43,27 +58,21 @@ $ docker compose up -d
  ✔ Container my-private-registry          Started                           
 ----
 
-* Stop a container
+. Stop a container
 +
 [source,shell]
 ----
 docker compose down
 ----
 
-* Show information
-
-** Show logs in container
+. Show information
++
+--
+* Show logs in container
 +
 [source,shell]
 ----
 docker logs my-private-registry
-----
-
-** Show docker the volume
-+
-[source,shell]
-----
-docker volume ls --filter Name=my-private-registry
 ----
 
 * Debug a container
@@ -72,8 +81,9 @@ docker volume ls --filter Name=my-private-registry
 ----
 docker exec -it my-private-registry /bin/sh
 ----
+--
 
-* Remove volumes
+. Remove volumes
 +
 [source,shell]
 ----
@@ -86,7 +96,7 @@ docker volume rm $(docker volume ls --filter Name=my-private-registry --format '
 +
 [source,shell]
 ----
-MY_PRIVATE_REGISTRY="docker.example.internal:5443"
+REGISTRY_FQDN_AND_PORT="docker.example.internal:5443"
 REPO="hello-world"
 ----
 
@@ -94,7 +104,7 @@ REPO="hello-world"
 +
 [source,shell]
 ----
-curl https://${MY_PRIVATE_REGISTRY}/v2/_catalog
+curl https://${REGISTRY_FQDN_AND_PORT}/v2/_catalog
 ----
 +
 [source,json]
@@ -123,14 +133,14 @@ docker.io/library/hello-world:latest
 +
 [source,shell]
 ----
-docker image tag hello-world:latest ${MY_PRIVATE_REGISTRY}/${REPO}:latest
+docker image tag hello-world:latest ${REGISTRY_FQDN_AND_PORT}/${REPO}:latest
 ----
 
 * Push the image
 +
 [source,shell]
 ----
-docker push ${MY_PRIVATE_REGISTRY}/${REPO}
+docker push ${REGISTRY_FQDN_AND_PORT}/${REPO}
 ----
 +
 [source,console]
@@ -146,7 +156,7 @@ latest: digest: sha256:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 +
 [source,shell]
 ----
-curl --cacert certs/docker-registry.crt https://${MY_PRIVATE_REGISTRY}/v2/_catalog
+curl --cacert certs/docker-registry.crt https://${REGISTRY_FQDN_AND_PORT}/v2/_catalog
 ----
 +
 [source,json]
@@ -158,19 +168,19 @@ curl --cacert certs/docker-registry.crt https://${MY_PRIVATE_REGISTRY}/v2/_catal
 +
 [source,shell]
 ----
-curl -i -X GET --cacert certs/docker-registry.crt ${MY_PRIVATE_REGISTRY}/v2/${REPO}/manifests/latest
+curl -i -X GET --cacert certs/docker-registry.crt ${REGISTRY_FQDN_AND_PORT}/v2/${REPO}/manifests/latest
 ----
 
 . Run the image
 +
 [source,shell]
 ----
-docker run --name "${REPO}-${RANDOM}" --rm "${MY_PRIVATE_REGISTRY}/${REPO}"
+docker run --name "${REPO}-${RANDOM}" --rm "${REGISTRY_FQDN_AND_PORT}/${REPO}"
 ----
 +
 [source,console]
 ----
-$ docker run --name "${REPO}-${RANDOM}" --rm "${MY_PRIVATE_REGISTRY}/${REPO}"
+$ docker run --name "${REPO}-${RANDOM}" --rm "${REGISTRY_FQDN_AND_PORT}/${REPO}"
 
 Hello from Docker!
 This message shows that your installation appears to be working correctly.
@@ -181,12 +191,12 @@ This message shows that your installation appears to be working correctly.
 +
 [source,shell]
 ----
-docker rmi ${MY_PRIVATE_REGISTRY}/${REPO}
+docker rmi ${REGISTRY_FQDN_AND_PORT}/${REPO}
 ----
 +
 [source,console]
 ----
-$ docker rmi ${MY_PRIVATE_REGISTRY}/${REPO}
+$ docker rmi ${REGISTRY_FQDN_AND_PORT}/${REPO}
 Untagged: docker.example.internal:5443/hello-world:latest
 Untagged: docker.example.internal:5443/hello-world@sha256:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ----
@@ -197,7 +207,7 @@ Untagged: docker.example.internal:5443/hello-world@sha256:xxxxxxxxxxxxxxxxxxxxxx
 +
 [source,shell]
 ----
-curl -X GET --cacert certs/docker-registry.crt https://${MY_PRIVATE_REGISTRY}/v2/${REPO}/tags/list
+curl -X GET --cacert certs/docker-registry.crt https://${REGISTRY_FQDN_AND_PORT}/v2/${REPO}/tags/list
 ----
 +
 [source,json]
@@ -215,7 +225,7 @@ curl -X GET --cacert certs/docker-registry.crt https://${MY_PRIVATE_REGISTRY}/v2
 DIGEST=$(curl \
 -H "Accept: application/vnd.docker.distribution.manifest.v2+json" \
 -H "Accept: application/vnd.docker.distribution.manifest.list.v2+json" \
--I -s "https://${MY_PRIVATE_REGISTRY}/v2/${REPO}/manifests/latest" | \
+-I -s "https://${REGISTRY_FQDN_AND_PORT}/v2/${REPO}/manifests/latest" | \
 sed -e '/docker-content-digest/!d; s/docker-content-digest: //; s/\r//')
 ----
 
@@ -228,7 +238,7 @@ curl -X DELETE \
 -H "Accept: application/vnd.docker.distribution.manifest.list.v2+json" \
 --head \
 --cacert certs/docker-registry.crt \
-"https://${MY_PRIVATE_REGISTRY}/v2/${REPO}/manifests/${DIGEST}"
+"https://${REGISTRY_FQDN_AND_PORT}/v2/${REPO}/manifests/${DIGEST}"
 ----
 
 . Delete tag
@@ -241,7 +251,7 @@ TAG="latest"
 -H "Accept: application/vnd.docker.distribution.manifest.list.v2+json" \
 --head \
 --cacert certs/docker-registry.crt \
-"https://${MY_PRIVATE_REGISTRY}/v2/${REPO}/manifests/${TAG}")
+"https://${REGISTRY_FQDN_AND_PORT}/v2/${REPO}/manifests/${TAG}")
 ----
 --
 
@@ -261,7 +271,7 @@ ls /var/lib/registry/docker/registry/v2/repositories
 +
 [source,shell]
 ----
-curl https://${MY_PRIVATE_REGISTRY}/v2/_catalog
+curl https://${REGISTRY_FQDN_AND_PORT}/v2/_catalog
 ----
 
 === Test Kubectl
@@ -274,13 +284,13 @@ cat > /docker-registry.crt <<EOF
 ...
 EOF
 
-MY_PRIVATE_REGISTRY="docker.example.internal:5443"
-curl --cacert /docker-registry.crt https://${MY_PRIVATE_REGISTRY}/v2/_catalog
+REGISTRY_FQDN_AND_PORT="docker.example.internal:5443"
+curl --cacert /docker-registry.crt https://${REGISTRY_FQDN_AND_PORT}/v2/_catalog
 
 mv /docker-registry.crt /usr/local/share/ca-certificates/
 update-ca-certificates
 
-curl https://${MY_PRIVATE_REGISTRY}/v2/_catalog
+curl https://${REGISTRY_FQDN_AND_PORT}/v2/_catalog
 ----
 
 [source,shell]

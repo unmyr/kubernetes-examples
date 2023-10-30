@@ -19,3 +19,4 @@ services:
         read_only: true
 volumes:
   my-private-registry:
+    external: true
