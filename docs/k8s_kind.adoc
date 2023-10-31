@@ -10,9 +10,7 @@ include::header.adoc[]
 * https://kind.sigs.k8s.io/[KIND^]
 * https://github.com/kubernetes-sigs/kind[kubernetes-sigs/kind: Kubernetes IN Docker - local clusters for testing Kubernetes^]
 
-== Install
-
-=== Install KIND
+=== Install KIND CLI
 
 . Install golang and Set `go` bin path
 +
@@ -34,10 +32,23 @@ exec $SHELL -l
 
 . Install KIND
 +
+--
+* Install by user
++
 [source,shell]
 ----
+sudo chown -R $USER:$GROUPS /home/guest/go
 go install sigs.k8s.io/kind@v0.20.0
 ----
+
+* Install by system
+[source,shell]
+----
+[ $(uname -m) = x86_64 ] && curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64
+sudo install ./kind /usr/local/bin/kind
+rm -f ./kind
+----
+--
 +
 [NOTE]
 .Failed to starting control-plane while running kind create cluster in KIND v0.20.0 on WSL2.
@@ -72,9 +83,18 @@ $ $(go env GOPATH)/bin/kind version
 kind v0.20.0 go1.21.0 linux/amd64
 ----
 
+=== Upgrade KIND CLI
+
+. Upgrade KIND
++
+[source,shell]
+----
+go install sigs.k8s.io/kind@v0.20.0
+----
+
 === Creating a Cluster
 
-==== Install by default settings
+==== Case 1: Install by default settings
 
 . Create Cluster
 +
@@ -99,8 +119,16 @@ CoreDNS is running at https://127.0.0.1:36897/api/v1/namespaces/kube-system/serv
 
 To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.
 ----
++
+[source,console]
+.get nodes
+----
+$ kind get nodes --name ${KIND_CLUSTER_NAME:-kind-1}
+kind-1-control-plane
+kind-1-worker
+----
 
-==== Using node port
+==== Case 2: Using node port
 
 https://kind.sigs.k8s.io/docs/user/using-wsl2/#accessing-a-kubernetes-service-running-in-wsl2[Accessing a Kubernetes Service running in WSL2^]
 
@@ -209,16 +237,232 @@ $ kubectl delete deployment nginx
 deployment.apps "nginx" deleted
 ----
 
+=== Using KIND CLI
+
+* Get KIND clusters
++
+[source,shell]
+----
+kind get clusters
+----
+
+* Get cluster certificate/context information
++
+[source,shell]
+----
+kind get kubeconfig --name ${KIND_CLUSTER:-kind-1}
+----
+
+* Get cluster information
+
+** Show API server URI
++
+[source,shell]
+----
+kubectl cluster-info --context kind-${KIND_CLUSTER:--kind-1}
+----
+
+** Dump cluster information
++
+[source,shell]
+.Current context
+----
+kubectl cluster-info dump
+----
++
+[source,shell]
+.Specific KIND context
+----
+kubectl cluster-info dump --context kind-${KIND_CLUSTER:--kind-1}
+----
+
+* Get KIND nodes
++
+[source,shell]
+----
+kind get nodes --name ${KIND_CLUSTER:-kind-1}
+----
++
+[source,shell]
+----
+for KIND_CLUSTER in $(kind get clusters); do (set -x; kind get nodes --name ${KIND_CLUSTER}); done
+----
++
+[source,shell]
+----
+kind get clusters | while read KIND_CLUSTER; do (set -x; kind get nodes --name ${KIND_CLUSTER}); done
+----
+
+* List images
++
+[source,shell]
+----
+docker exec -it ${KIND_NODENAME} crictl images
+----
++
+[source,shell]
+----
+for KIND_CLUSTER in $(kind get clusters); do for DOCKER_CONTAINER in $(kind get nodes --name ${KIND_CLUSTER}); do (set -x; docker exec ${DOCKER_CONTAINER} crictl images); done; done
+----
++
+[source,shell]
+----
+kind get clusters | while read KIND_CLUSTER; do kind get nodes --name ${KIND_CLUSTER} | while read DOCKER_CONTAINER; do (set -x; docker exec ${DOCKER_CONTAINER} crictl images); done; done
+----
+
+* Upload image to KIND
++
+[source,shell]
+----
+kind load docker-image my-custom-image-0:tag1 my-custom-image-1:tag2 --name ${KIND_CLUSTER}
+----
+
 === Install kubectl
+
+.Make sure the version matches KIND.
+* https://github.com/kubernetes-sigs/kind/releases[Releases · kubernetes-sigs/kind^]
++
+> v0.20.0 Latest
+> ...snip...
+> *Breaking Changes*
+> ...snip...
+> - The default node image is a Kubernetes v1.27.3 image:
+
+* https://kubernetes.io/releases/[Releases | Kubernetes^]
+
+
+==== Install kubectl binary with curl on Linux
+. Install kubectl
++
+--
+* Install specific version match to KIND (2023-11-01)
++
+[source,shell]
+----
+KUBECTL_CLIENT_VERSION="v1.27.7"
+curl --silent -L "https://storage.googleapis.com/kubernetes-release/release/${KUBECTL_CLIENT_VERSION}/bin/linux/amd64/kubectl" > ~/bin/kubectl
+chmod 755 ~/bin/kubectl
+unset KUBECTL_CLIENT_VERSION
+----
+
+.Get latest release (not recommended)
+. Download the latest release with the command: +
+See: https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/[Install and Set Up kubectl on Linux | Kubernetes^]
++
+[source,shell]
+----
+curl -LO "https://storage.googleapis.com/kubernetes-release/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+----
+
+. Validate the binary (optional)
++
+[source,shell]
+.Download the kubectl checksum file:
+----
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl.sha256"
+echo "$(cat kubectl.sha256) kubectl" | sha256sum --check
+----
++
+[source,shell]
+.Validate the kubectl binary against the checksum file:
+----
+echo "$(cat kubectl.sha256) kubectl" | sha256sum --check
+----
 
 . Install kubectl
 +
 [source,shell]
 ----
-curl -LO "https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
-sudo install -m 755 kubectl /usr/local/bin/kubectl
+install -m 0755 kubectl ~/bin/kubectl
 rm kubectl
 ----
++
+[source,shell]
+----
+sudo install -m 0755 kubectl /usr/local/bin/kubectl
+rm kubectl
+----
+--
+
+==== Install using native package management
+. Update the apt package index and install packages needed to use the Kubernetes apt repository:
++
+[source,shell]
+----
+sudo apt-get update
+# apt-transport-https may be a dummy package; if so, you can skip that package
+sudo apt-get install -y apt-transport-https ca-certificates curl
+----
+
+. Download the public signing key for the Kubernetes package repositories. The same signing key is used for all repositories so you can disregard the version in the URL:
++
+--
+* 1.27.x
+[source,shell]
+----
+KUBECTL_CLIENT_VERSION="v1.27"
+curl -fsSL https://pkgs.k8s.io/core:/stable:/${KUBECTL_CLIENT_VERSION}/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring-${KUBECTL_CLIENT_VERSION}.gpg
+----
++
+[source,shell]
+.Add the appropriate Kubernetes apt repository.:
+----
+# This overwrites any existing configuration in /etc/apt/sources.list.d/kubernetes.list
+echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring-${KUBECTL_CLIENT_VERSION}.gpg] https://pkgs.k8s.io/core:/stable:/${KUBECTL_CLIENT_VERSION}/deb/ /" | sudo tee -a /etc/apt/sources.list.d/kubernetes.list
+----
+
+* 1.28.x
++
+[source,shell]
+----
+KUBECTL_CLIENT_VERSION="v1.28"
+curl -fsSL https://pkgs.k8s.io/core:/stable:/${KUBECTL_CLIENT_VERSION}/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring-${KUBECTL_CLIENT_VERSION}.gpg
+----
++
+[source,shell]
+.Add the appropriate Kubernetes apt repository. If you want to use Kubernetes version different than v1.28, replace v1.28 with the desired minor version in the command below:
+----
+# This overwrites any existing configuration in /etc/apt/sources.list.d/kubernetes.list
+echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring-${KUBECTL_CLIENT_VERSION}.gpg] https://pkgs.k8s.io/core:/stable:/${KUBECTL_CLIENT_VERSION}/deb/ /" | sudo tee -a /etc/apt/sources.list.d/kubernetes.list
+----
+--
+
+. Update apt package index, then install kubectl:
++
+[source,shell]
+----
+sudo apt-get update
+----
++
+[source,shell]
+.List available version
+----
+apt list -a kubectl --all-versions
+----
++
+--
+* Install 1.27.x
++
+[source,console]
+----
+$ sudo apt-cache showpkg kubectl | grep -F stable | grep -F '1.27.' | head -1
+1.27.7-1.1 (/var/lib/apt/lists/pkgs.k8s.io_core:_stable:_v1.27_deb_Packages)
+$ apt list -a kubectl | grep -w amd64 | grep -F '1.27' | sort -V | tail -1
+kubectl/unknown 1.27.7-1.1 amd64
+----
++
+[source,shell]
+----
+sudo apt-get install -y kubectl=1.27.7-1.1
+----
+
+* Install latest version
++
+[source,shell]
+----
+sudo apt-get install -y kubectl
+----
+--
 
 === arp/arping (optional)
 
@@ -418,15 +662,6 @@ kubectl patch daemonsets -n projectcontour envoy -p '{"spec":{"template":{"spec"
 .References
 * https://projectcontour.io/getting-started/[Getting Started with Contour^]
 * https://tanzu.vmware.com/developer/guides/service-routing-contour-to-ingress-and-beyond/[Getting Started with Contour - To Ingress and Beyond | VMware Tanzu Developer Center^]
-
-== Upgrade
-
-. Upgrade KIND
-+
-[source,shell]
-----
-go install sigs.k8s.io/kind@v0.20.0
-----
 
 == Uninstall
 
