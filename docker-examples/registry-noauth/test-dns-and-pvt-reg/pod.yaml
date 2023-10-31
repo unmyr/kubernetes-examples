@@ -1,0 +1,45 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  name: test-docker-private-registry
+  labels:
+    app: test-dns-and-pvt-reg  # This field will be replaced by the kustomize.
+spec:
+  containers:
+  - name: default
+    image: ubuntu:22.04
+    env:
+    - name: REGISTRY_FQDN_AND_PORT
+      valueFrom:
+        configMapKeyRef:
+          name: private-registry
+          key: REGISTRY_FQDN_AND_PORT
+    volumeMounts:
+    - name: ca-pem-store
+      mountPath: /etc/ssl/certs/docker-registry.crt
+      subPath: docker-registry.crt
+      readOnly: false
+    args:
+    - /bin/sh
+    - -c
+    - update-ca-certificates; (apt-get update; apt-get install -y curl) & tail -f /dev/null
+    startupProbe:
+      exec:
+        command:
+        - which
+        - curl
+      initialDelaySeconds: 18
+      periodSeconds: 3
+      failureThreshold: 20
+  restartPolicy: Never
+  # dnsConfig:
+  #   nameservers: []
+  volumes:
+  - name: ca-pem-store
+    configMap:
+      name: ca-pem-store
+  - name: private-registry
+    configMap:
+      name: private-registry

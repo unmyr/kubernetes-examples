@@ -1,0 +1,7 @@
+# SSL Certificates
+certs/*.crt
+certs/*.key
+
+# Kustomize
+.kustomization-out.yaml
+kustomization.yaml
