@@ -65,6 +65,7 @@
         "dockerconfigjson",
         "Dorg",
         "dpkg",
+        "dport",
         "ekidd",
         "endpointslice",
         "endpointslices",

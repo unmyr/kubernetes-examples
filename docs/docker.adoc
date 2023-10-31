@@ -438,9 +438,14 @@ esac
 
 * Filter by name
 +
-[source,console]
+[source,shell]
 ----
-$ docker image ls --filter "reference=greet-python*" --format '{{.ID}}'
+docker image ls --filter "reference=greet-python*" --format '{{.ID}}'
+----
++
+[source,shell]
+----
+docker image ls --filter reference=greet-python:0.1
 ----
 
 * Filter '<none>'
@@ -486,6 +491,34 @@ $ docker container ls --format "{{json .}}" | python3 -m json.tool
 $ docker container ls --format "table {{.Image}}\t{{.State}}\t{{.Names}}"
 IMAGE                  STATE     NAMES
 kindest/node:v1.24.0   running   kind-control-plane
+----
+
+* How to list exposed port of all containers?
++
+[source,console]
+----
+$ sudo lsof -nP -iTCP -sTCP:LISTEN
+COMMAND    PID            USER   FD   TYPE DEVICE SIZE/OFF NODE NAME
+systemd-r  107 systemd-resolve   14u  IPv4  20694      0t0  TCP 127.0.0.53:53 (LISTEN)
+docker-pr  592            root    4u  IPv4  23641      0t0  TCP 127.0.0.1:38927 (LISTEN)
+docker-pr  606            root    4u  IPv4  19703      0t0  TCP *:30081 (LISTEN)
+docker-pr  620            root    4u  IPv4  21640      0t0  TCP *:30080 (LISTEN)
+docker-pr  633            root    4u  IPv4  21652      0t0  TCP *:30000 (LISTEN)
+node      5896           alice   19u  IPv4  57661      0t0  TCP 127.0.0.1:44685 (LISTEN)
+----
++
+[source,console]
+----
+$ docker container ls --format "table {{.ID}}\t{{.Names}}\t{{.Ports}}" -a
+CONTAINER ID   NAMES                  PORTS
+2faf80a80d21   kind-1-control-plane   0.0.0.0:30000->30000/tcp, 0.0.0.0:30080-30081->30080-30081/tcp, 127.0.0.1:38927->6443/tcp
+a1a819f1dc0e   practical_ride
+----
++
+[source,shell]
+.iptables-save
+----
+sudo iptables-save | grep -P "(--to-destination|--.port)" | grep -v "DROP" | grep -P ":\d+|--dport \d+"
 ----
 
 ==== inspect
