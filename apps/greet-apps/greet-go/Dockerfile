@@ -1,8 +1,8 @@
-FROM golang:1.19-alpine3.16 as builder
+FROM golang:1.21.3-alpine3.18 as builder
 COPY ./main.go ./
 RUN go build -o /go-app main.go
 
-FROM alpine:3.16 as runtime
+FROM alpine:3.18 as runtime
 EXPOSE 8080
 COPY --from=builder /go-app .
 ENTRYPOINT ["./go-app"]

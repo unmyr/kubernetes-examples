@@ -1,3 +1,3 @@
-module example.com/go-app
+module example.internal/greet-go
 
-go 1.19
+go 1.21

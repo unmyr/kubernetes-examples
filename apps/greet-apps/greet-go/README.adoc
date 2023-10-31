@@ -42,6 +42,21 @@ go 1.19
 
 ==== Build docker using docker command
 
+. Select go images +
++
+--
+.References
+* https://hub.docker.com/_/golang[golang - Official Image | Docker Hub^]
+* https://hub.docker.com/_/alpine[alpine - Official Image | Docker Hub^]
+--
+
+. List version
++
+[source,shell]
+----
+docker image ls --filter reference=greet-go
+----
+
 . Build docker image
 +
 [source,shell]
@@ -60,7 +75,33 @@ docker image ls --filter "reference=greet-go*"
 ----
 $ docker image ls --filter "reference=greet-go*"
 REPOSITORY   TAG       IMAGE ID       CREATED          SIZE
-greet-go     0.1       0bc5a647069d   17 seconds ago   12.2MB
+greet-go     0.1       153c6379ac7e   2 minutes ago   12.4MB
+----
+
+. (Optional) Push to docker private registry.
++
+[source,shell]
+----
+REGISTRY_FQDN_AND_PORT="docker.example.internal:5443"
+REPO_AND_TAG="greet-go:0.1"
+(set -x; docker image tag ${REPO_AND_TAG} ${REGISTRY_FQDN_AND_PORT}/${REPO_AND_TAG})
+(set -x; docker push ${REGISTRY_FQDN_AND_PORT}/${REPO_AND_TAG})
+(set -x; docker image ls --filter "reference=${REGISTRY_FQDN_AND_PORT}/greet-go*")
+----
++
+[source,console]
+----
+$ docker image tag ${REPO_AND_TAG} ${REGISTRY_FQDN_AND_PORT}/${REPO_AND_TAG}
+(set -x; docker push ${REGISTRY_FQDN_AND_PORT}/${REPO_AND_TAG})
++ docker push docker.example.internal:5443/greet-go:0.1
+The push refers to repository [docker.example.internal:5443/greet-go]
+05e28d3d0848: Pushed 
+0e182002b05f: Pushed 
+0.1: digest: sha256:32799ea09c420209231f77d1c9f00bcc08de9e979527da99bd9ed74480b7752a size: 739
+$ (set -x; docker image ls --filter "reference=${REGISTRY_FQDN_AND_PORT}/greet-go*")
++ docker image ls --filter 'reference=docker.example.internal:5443/greet-go*'
+REPOSITORY                              TAG       IMAGE ID       CREATED         SIZE
+docker.example.internal:5443/greet-go   0.1       153c6379ac7e   5 minutes ago   12.4MB
 ----
 
 ==== Build docker using Buildpacks
@@ -235,8 +276,8 @@ NAME           READY   UP-TO-DATE   AVAILABLE   AGE
 greet-go-app   2/2     2            2           3m29s
 $ kubectl get pods
 NAME                            READY   STATUS    RESTARTS   AGE
-greet-go-app-6d96948599-9kww7   1/1     Running   0          12s
-greet-go-app-6d96948599-sdkn6   1/1     Running   0          12s
+greet-go-app-6d96948599-xxxxx   1/1     Running   0          12s
+greet-go-app-6d96948599-yyyyy   1/1     Running   0          12s
 $ kubectl get service greet-go-service
 NAME               TYPE           CLUSTER-IP    EXTERNAL-IP      PORT(S)          AGE
 greet-go-service   LoadBalancer   10.96.0.176   172.18.254.240   3000:30153/TCP   112
