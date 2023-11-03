@@ -314,6 +314,8 @@ kubectl delete ns bar
 
 === Namespace
 
+* List namespaces
++
 [source,console]
 ----
 $ kubectl get namespace
@@ -324,6 +326,13 @@ kube-public          Active   31h
 kube-system          Active   31h
 local-path-storage   Active   31h
 metallb-system       Active   8m8s
+----
+
+* Create/Apply namespace
++
+[source,shell]
+----
+kubectl create ns "${NAMESPACE:-default}" --dry-run=client -o yaml | kubectl apply -f -
 ----
 
 === Nodes
@@ -622,6 +631,15 @@ kubectl get -n greet-go pod/${POD_NAME} -o jsonpath="{.spec.containers[?(@.name=
 kubectl run -n "${NAMESPACE:-default}" -it curl --image=curlimages/curl --rm --restart=Never -- /bin/sh
 ----
 https://hub.docker.com/r/curlimages/curl[curlimages/curl - Docker Image | Docker Hub^]
+
+. Run docker image
++
+[source,shell]
+----
+kubectl run -q -n "${NAMESPACE:-default}" -it --rm docker-in-docker --image=docker --restart=Never -- sh
+----
+https://hub.docker.com/_/docker[docker - Official Image | Docker Hub^] +
+Docker in Docker!
 
 * Run python images
 +
