@@ -1,0 +1,38 @@
+== Example of filedRef
+
+=== Apply
+
+[source,shell]
+----
+kubectl apply -n default -f ./deployment.yaml
+----
+
+=== Delete
+
+[source,shell]
+----
+kubectl delete -n default -f ./deployment.yaml
+----
+
+=== Show resources
+
+[source,shell]
+----
+kubectl get all -n default 
+----
+
+=== Print environment variables
+
+[source,shell]
+----
+kubectl exec -n default $(kubectl get -n default -l app=nginx-simple pods -o jsonpath="{.items[0].metadata.name}") -- sh -c 'env | grep MY_'
+----
+
+[source,shell]
+----
+MY_POD_FQDN=nginx-simple.default.svc
+MY_NODE_NAME=kind-1-worker
+MY_POD_NAMESPACE=default
+MY_POD_IP=10.244.1.36
+MY_POD_NAME=nginx-simple-77bc855bff-tt5hg
+----

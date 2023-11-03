@@ -1,0 +1,57 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-simple
+  labels:
+    app: nginx-simple
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx-simple
+  template:
+    metadata:
+      labels:
+        app: nginx-simple
+    spec:
+      containers:
+      - name: default
+        image: nginx
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: MY_NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: MY_POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: MY_POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: MY_POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: MY_POD_FQDN
+          value: "nginx-simple.$(MY_POD_NAMESPACE).svc"
+        ports:
+        - containerPort: 80
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: nginx-simple
+spec:
+  type: LoadBalancer
+  selector:
+    app: nginx-simple
+  ports:
+  - name: "http-port"
+    protocol: TCP
+    port: 80
+  selector:
+    app: nginx-simple
