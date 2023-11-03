@@ -605,6 +605,14 @@ $ kubectl get -n demo pods -l app=greet-python-app -o jsonpath='{range .items[*]
 8080
 ----
 
+** Example 3: Filter by container name
++
+[source,shell]
+----
+kubectl get -n greet-go pod/${POD_NAME} -o jsonpath="{.spec.containers[?(@.name=='${CONTAINER_NAME}')].ports[0].containerPort}"
+----
+
+
 ==== Run images
 
 * Run curl images
@@ -629,6 +637,19 @@ https://hub.docker.com/_/nginx/[nginx - Official Image | Docker Hub^]
 [source,shell]
 ----
 kubectl run -q -n "${NAMESPACE:-default}" --image=nginx nginx -it --rm --restart=Never -- /bin/bash
+----
+
+** Patch: dnsPolicy: None and dnsConfig > nameservers > `8.8.8.8`
++
+[source,shell]
+----
+kubectl run nginx -it --image=nginx --overrides='{ "apiVersion": "v1", "spec": { "dnsPolicy": "None", "dnsConfig": { "nameservers" : [ "8.8.8.8" ] } } }' --rm --restart=Never -- /bin/bash
+----
++
+[source,console]
+----
+root@nginx:/# cat /etc/resolv.conf 
+nameserver 8.8.8.8
 ----
 
 * Run ubuntu image
