@@ -1,0 +1,54 @@
+ifndef::leveloffset[]
+:toc: left
+:toclevels: 3
+endif::[]
+
+ifndef::env-github[]
+:icons: font
+endif::[]
+
+ifdef::env-github[]
+:tip-caption: :bulb:
+:note-caption: :information_source:
+:important-caption: :heavy_exclamation_mark:
+:caution-caption: :fire:
+:warning-caption: :warning:
+endif::[]
+
+== Pull an Image from a Private Registry
+
+* https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/[Pull an Image from a Private Registry | Kubernetes^]
+
+=== Add CA certificate
+
+* Kind +
+  See: https://kind.sigs.k8s.io/docs/user/private-registries/#use-a-certificate[Use a Certificate - kind - Private Registries^]
+
+=== Deploy
+
+. Test image pushed
++
+[source,shell]
+----
+(. .env; set -x; curl -u alice:$(cat .pass-alice) https://${REGISTRY_FQDN_AND_PORT}/v2/_catalog)
+(. .env; set -x; curl -X GET -u alice:$(cat .pass-alice) https://${REGISTRY_FQDN_AND_PORT}/v2/greet-go/tags/list)
+----
+
+. Create namespace
++
+[source,shell]
+----
+NAMESPACE="greet-go"
+kubectl create ns ${NAMESPACE:-default}
+----
+
+. Add docker credential to secret
++
+[source,shell]
+----
+kubectl create secret generic reg-cred \
+-n ${NAMESPACE:-default} \
+--from-file=.dockerconfigjson=./.docker/config.json \
+--type=kubernetes.io/dockerconfigjson
+----
+

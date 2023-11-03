@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: greet-go-pod
+  labels:
+    app: greet-go-app
+spec:
+  containers:
+  - name: default
+    image: docker.example.internal:5443/greet-go:0.1
+    imagePullPolicy: IfNotPresent
+    ports:
+    - containerPort: 8080
+  imagePullSecrets:
+  - name: reg-cred
