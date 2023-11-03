@@ -1,0 +1,17 @@
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: my-registry
+  namespace: docker-private-registry
+spec:
+  type: LoadBalancer
+  # selector:
+  #   app: docker-private-registry  # This field will be replaced by the kustomize.
+  ports:
+  - name: "http-port"
+    protocol: TCP
+    port: 5000
+    targetPort: 5000
+  selector:
+    app: docker-registry

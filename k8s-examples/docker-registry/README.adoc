@@ -1,0 +1,71 @@
+== Description
+
+=== Apply/Delete apps
+
+* Deploy apps
++
+[source,shell]
+----
+./deploy.sh create
+----
+
+* Delete apps
++
+[source,shell]
+----
+./deploy.sh delete
+----
+
+=== Test docker private registry
+
+. Run curl image
++
+[source,shell]
+----
+NAMESPACE="my-private-registry-demo"
+kubectl run -q -n "${NAMESPACE:-default}" -it --rm curl --image=curlimages/curl --restart=Never -- sh
+----
+
+. Store password
++
+[source,shell]
+----
+echo -n "********" > ~/.pass-alice
+----
+
+. Get catalog
++
+[source,shell]
+----
+REGISTRY_FQDN_AND_PORT="my-registry.my-private-registry-demo.svc:5000"
+curl -u alice:$(cat ~/.pass-alice) -v http://${REGISTRY_FQDN_AND_PORT}/v2/_catalog
+----
+
+
+==== Test docker login (failed)
+
+. Run docker image
++
+[source,shell]
+----
+kubectl run -q -n "${NAMESPACE:-default}" -it docker-client --image=docker --restart=Never -- sh
+----
+
+. Store password
++
+[source,shell]
+----
+echo -n "********" > ~/.pass-alice
+----
+
+. (Error) Execute docker login
++
+[source,console]
+----
+/ # REGISTRY_FQDN_AND_PORT="my-registry.my-private-registry-demo.svc:5000"
+/ # docker login http://my-registry.my-private-registry-demo.svc:5000
+/ # cat .pass-alice | docker login --username alice --password-stdin http://${REGISTRY_FQDN_AND_PORT} 
+Username: alice
+Password: 
+error during connect: Post "http://docker:2375/v1.24/auth": dial tcp: lookup docker on 10.96.0.10:53: server misbehaving
+----

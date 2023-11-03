@@ -1,0 +1,13 @@
+# SSL Certificates
+certs/
+
+# Basic Auth
+.pass*
+basic-auth/
+
+# Kustomize
+.kustomization-out.yaml
+kustomization.yaml
+
+# temporary files
+.env*

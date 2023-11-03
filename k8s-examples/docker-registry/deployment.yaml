@@ -1,0 +1,49 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: docker-registry
+  labels:
+    app: docker-registry
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: docker-registry
+  template:
+    metadata:
+      labels:
+        app: docker-registry
+    spec:
+      containers:
+      - name: docker-registry
+        image: registry:2
+        envFrom:
+        env:
+        - name: MY_SERVICE_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: my-private-registry
+              key: MY_SERVICE_NAME
+        - name: MY_POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: REGISTRY_AUTH_HTPASSWD_PATH
+          valueFrom:
+            configMapKeyRef:
+              name: my-private-registry
+              key: REGISTRY_AUTH_HTPASSWD_PATH
+        - name: REGISTRY_HTTP_HOST
+          value: "http://$(MY_SERVICE_NAME).$(MY_POD_NAMESPACE).svc:5000"
+        - name: REGISTRY_AUTH_HTPASSWD_REALM
+          value: "Registry Realm"
+        ports:
+        - containerPort: 5000
+        volumeMounts:
+        - name: my-private-registry-volume
+          mountPath: "/var/lib/registry/auth"  # replace
+      volumes:
+      - name: my-private-registry-volume
+        configMap:
+          name: my-private-registry
