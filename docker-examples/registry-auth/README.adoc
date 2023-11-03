@@ -1,0 +1,278 @@
+== Docker Registry V2
+
+=== Install
+
+. Search package
++
+[source,shell]
+----
+apt-cache search htpasswd
+apt info apache2-utils
+----
+
+. Install `apache2-utils`
++
+[source,shell]
+----
+sudo apt-get install -y apache2-utils pwgen
+----
+
+=== Setup
+
+. Check existing TCP listen ports
++
+[source,shell]
+----
+sudo lsof -nP -iTCP -sTCP:LISTEN
+----
+
+. Create directory
++
+[source,shell]
+----
+sudo install -d -m 755 /var/docker/private-registry
+----
+
+. Create a `.env` file for docker compose.
++
+[source,shell]
+.env
+----
+REGISTRY_HTTP_TLS_CERTIFICATE=/certs/docker-registry.crt
+REGISTRY_HTTP_TLS_KEY=/certs/docker-registry.key
+----
+
+. Generate password
++
+[source,shell]
+----
+mkdir -p basic-auth/
+rm -f ./basic-auth/registry.password
+pwgen 12 1 | tr -d '\n' > .pass-alice
+cat .pass-alice | htpasswd -B -i -c basic-auth/registry.password alice
+----
+
+=== Manage container
+
+* Start a container
++
+[source,shell]
+----
+docker compose up -d
+----
++
+[source,console]
+----
+$ docker compose up -d
+[+] Running 3/3
+ ✔ Network registry_default               Created                                                                                0.1s 
+ ✔ Volume "registry_my-private-registry"  Created                                                                                0.0s 
+ ✔ Container my-private-registry          Started                           
+----
+
+* Stop a container
++
+[source,shell]
+----
+docker compose down
+----
+
+* Show information
+
+** Show logs in container
++
+[source,shell]
+----
+docker logs my-private-registry
+----
+
+** Show docker the volume
++
+[source,shell]
+----
+docker volume ls --filter Name=my-private-registry
+----
+
+* Debug a container
++
+[source,shell]
+----
+docker exec -it my-private-registry /bin/sh
+----
+
+* Remove volumes
++
+[source,shell]
+----
+docker volume rm $(docker volume ls --filter Name=my-private-registry --format '{{.Name}}')
+----
+
+=== Test docker registry
+
+. Set shell variable
++
+[source,shell]
+----
+REGISTRY_FQDN_AND_PORT="docker.example.internal:5443"
+REPO="greet-python"
+TAG="0.1"
+----
+
+. Test connection
++
+[source,shell]
+----
+curl -u alice:$(cat .pass-alice) https://${REGISTRY_FQDN_AND_PORT}/v2/_catalog
+----
++
+[source,json]
+----
+{"repositories":[]}
+----
+
+* Add tag
++
+[source,shell]
+----
+cat .pass-alice | docker login --username alice --password-stdin https://${REGISTRY_FQDN_AND_PORT}
+(set -x; docker image tag ${REPO}:${TAG} ${REGISTRY_FQDN_AND_PORT}/${REPO}:${TAG})
+----
+
+* Push the image
++
+[source,shell]
+----
+(set -x; docker push ${REGISTRY_FQDN_AND_PORT}/${REPO}:${TAG})
+----
+
+. Get catalog
++
+[source,shell]
+----
+curl --cacert certs/docker-registry.crt -u alice:$(cat .pass-alice) https://${REGISTRY_FQDN_AND_PORT}/v2/_catalog
+----
++
+[source,json]
+----
+{"repositories":["greet-python"]}
+----
+
+. Get manifest
++
+[source,shell]
+----
+(set -x; curl -i -X GET --cacert certs/docker-registry.crt -u alice:$(cat .pass-alice) ${REGISTRY_FQDN_AND_PORT}/v2/${REPO}/manifests/${TAG})
+----
+
+. Run the image
++
+[source,shell]
+----
+(set -x; docker run --name "${REPO}-${RANDOM}" --rm "${REGISTRY_FQDN_AND_PORT}/${REPO}:${TAG}")
+CONTAINER_ID=$(docker ps --filter Name=greet-python --format='{{.ID}}\t{{.Image}}\t{{.Names}}' | awk '{print $1}')
+CONTAINER_IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ${CONTAINER_ID})
+(set -x; curl http://${CONTAINER_IP}:8080/api/greet/John)
+----
++
+[source,console]
+----
+$ docker run --name "${REPO}-${RANDOM}" --rm "${REGISTRY_FQDN_AND_PORT}/${REPO}:${TAG}"
+...snip...
+172.17.0.1 - - [31/Oct/2023 01:12:12] "GET /api/greet/John HTTP/1.1" 200 -
+172.17.0.1 - - [31/Oct/2023 01:49:54] "GET /api/greet/John HTTP/1.1" 200 -
+----
+
+. Remove the image
++
+[source,shell]
+----
+docker rmi ${REGISTRY_FQDN_AND_PORT}/${REPO}:${TAG}
+----
++
+[source,console]
+----
+$ docker rmi ${REGISTRY_FQDN_AND_PORT}/${REPO}
+Untagged: docker.example.internal:5443/greet-python:0.1
+Untagged: docker.example.internal:5443/greet-python@sha256:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+----
+
+==== Tags
+
+* List tags
++
+[source,shell]
+----
+curl -X GET --cacert certs/docker-registry.crt -u alice:$(cat .pass-alice) https://${REGISTRY_FQDN_AND_PORT}/v2/${REPO}/tags/list
+----
++
+[source,json]
+----
+{"name":"greet-python","tags":["0.1"]}
+----
+
+* Delete digest
++
+--
+. Show digest
++
+[source,shell]
+----
+DIGEST=$(curl \
+-H "Accept: application/vnd.docker.distribution.manifest.v2+json" \
+-H "Accept: application/vnd.docker.distribution.manifest.list.v2+json" \
+-I -s "https://${REGISTRY_FQDN_AND_PORT}/v2/${REPO}/manifests/${TAG}" | \
+sed -e '/docker-content-digest/!d; s/docker-content-digest: //; s/\r//')
+----
+
+. Delete digest
++
+[source,shell]
+----
+curl -X DELETE \
+-H "Accept: application/vnd.docker.distribution.manifest.v2+json" \
+-H "Accept: application/vnd.docker.distribution.manifest.list.v2+json" \
+--head \
+--cacert certs/docker-registry.crt \
+"https://${REGISTRY_FQDN_AND_PORT}/v2/${REPO}/manifests/${DIGEST}"
+----
+
+. Delete tag
++
+[source,shell]
+----
+TAG="1.0"
+(set -x; curl -X DELETE \
+-H "Accept: application/vnd.docker.distribution.manifest.v2+json" \
+-H "Accept: application/vnd.docker.distribution.manifest.list.v2+json" \
+--head \
+--cacert certs/docker-registry.crt \
+"https://${REGISTRY_FQDN_AND_PORT}/v2/${REPO}/manifests/${TAG}")
+----
+--
+
+* Debug a container
++
+[source,shell]
+----
+docker exec -it "my-private-registry" /bin/sh -c "find /var/lib/registry/docker/registry/v2/repositories/ -maxdepth 2"
+docker exec -it my-private-registry /bin/sh -c "rm -rf /var/lib/registry/docker/registry/v2/repositories/${REPO}/"
+----
++
+[source,console]
+----
+$ docker exec -it "my-private-registry" /bin/sh -c "find /var/lib/registry/docker/registry/v2/repositories/ -maxdepth 2"
+/var/lib/registry/docker/registry/v2/repositories/
+/var/lib/registry/docker/registry/v2/repositories/greet-python
+/var/lib/registry/docker/registry/v2/repositories/greet-python/_uploads
+/var/lib/registry/docker/registry/v2/repositories/greet-python/_manifests
+/var/lib/registry/docker/registry/v2/repositories/greet-python/_layers
+$ docker exec -it my-private-registry /bin/sh -c "rm -rf /var/lib/registry/docker/registry/v2/repositories/${REPO}/"
+$
+----
+
+* Verify removed
++
+[source,shell]
+----
+curl --cacert certs/docker-registry.crt -u alice:$(cat .pass-alice) https://${REGISTRY_FQDN_AND_PORT}/v2/_catalog
+----

@@ -1,0 +1,10 @@
+# SSL Certificates
+certs/
+
+# Basic Auth
+.pass*
+basic-auth/
+
+# temporary files
+test-docker-private-registry.yaml
+.env*
