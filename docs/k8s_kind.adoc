@@ -42,6 +42,7 @@ go install sigs.k8s.io/kind@v0.20.0
 ----
 
 * Install by system
++
 [source,shell]
 ----
 [ $(uname -m) = x86_64 ] && curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64
@@ -908,6 +909,7 @@ NAME               TYPE           CLUSTER-IP     EXTERNAL-IP      PORT(S)       
 greet-go-service   LoadBalancer   10.96.229.58   172.18.254.240   3000:30466/TCP   6m33s
 ----
 +
+[source,console]
 ----
 $ curl -s http://172.18.254.240:3000/api/greet/John \
 --header "Content-Type: application/json" --request "GET" | python3 -m json.tool
