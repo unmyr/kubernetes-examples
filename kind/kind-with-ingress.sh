@@ -36,6 +36,8 @@ nodes:
   extraMounts:
   - hostPath: ${MOUNT_POINT_DOCKER_REGISTRY}
     containerPath: ${MOUNT_POINT_DOCKER_REGISTRY}
+  - hostPath: /etc/docker/certs.d/docker.example.internal
+    containerPath: /etc/docker/certs.d/docker.example.internal
 - role: worker
   kubeadmConfigPatches:
   - |
@@ -62,6 +64,12 @@ nodes:
   extraMounts:
   - hostPath: ${MOUNT_POINT_POSTGRES}
     containerPath: ${MOUNT_POINT_POSTGRES}
+
+containerdConfigPatches:
+  - |-
+    [plugins."io.containerd.grpc.v1.cri".registry.configs."docker.example.internal".tls]
+      cert_file = "/etc/docker/certs.d/docker.example.internal/ba_client.cert"
+      key_file  = "/etc/docker/certs.d/docker.example.internal/ba_client.key"
 EOF
 
     KUBE_NODENAME_CONTROL_PLANE="${KIND_CLUSTER_NAME}-control-plane"
@@ -115,8 +123,19 @@ spec:
           values:
             - ${KUBE_NODENAME_WORKER}
 EOF
-    kubectl apply -f https://projectcontour.io/quickstart/contour.yaml
-    kubectl patch daemonsets -n projectcontour envoy -p '{"spec":{"template":{"spec":{"nodeSelector":{"ingress-ready":"true"},"tolerations":[{"key":"node-role.kubernetes.io/control-plane","operator":"Equal","effect":"NoSchedule"},{"key":"node-role.kubernetes.io/master","operator":"Equal","effect":"NoSchedule"}]}}}}'
+    set -x
+    curl -L --silent -w '%{stdout}' https://raw.githubusercontent.com/projectcontour/contour/release-1.26/examples/render/contour.yaml | \
+sed -e 's/# \(cluster:\)/\1/' \
+-e '/#   configure the cluster dns lookup family/d' \
+-e '/#   valid options are: auto (default), v4, v6/d' \
+-e 's/#   dns-lookup-family: \(v4\|v6\|auto\)/  dns-lookup-family: v4/' | \
+kubectl apply -f -
+    kubectl patch daemonsets -n projectcontour envoy -p '{"spec":{"template":{"spec":{"nodeSelector":{"ingress-ready":"true"},"tolerations":[{"key":"node-role.kubernetes.io/control-plane","operator":"Equal","effect":"NoSchedule"},{"key":"node-role.kubernetes.io/master","operator":"Equal","effect":"NoSchedule"}]}}}}' -o yaml
+    set +x
+    if [ -n "${PRIVATE_DNS}" ]; then
+        (set -x; kubectl patch -n projectcontour deployments/contour -p "{\"spec\": {\"template\": {\"spec\": {\"dnsConfig\":{ \"nameservers\": [\"${PRIVATE_DNS}\"] } } } } }")
+    fi
+    (set -x; kubectl rollout restart daemonset envoy -n projectcontour)
 
     : Install MetalLb
     kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.10/config/manifests/metallb-native.yaml
