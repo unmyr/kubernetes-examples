@@ -1,5 +1,77 @@
 
 == Kustomize
 
-https://kustomize.io/[Kustomize - Kubernetes native configuration management^]
+* https://kustomize.io/[Kustomize - Kubernetes native configuration management^]
 
+.References
+* https://kubernetes.io/docs/concepts/overview/working-with-objects/common-labels/[Recommended Labels | Kubernetes^]
+
+=== Patch
+
+==== Pod
+
+* env
++
+[source,yaml]
+----
+patches:
+- target:
+    version: v1
+    kind: Pod
+    name: nginx-simple-env-new-app
+  patch: |-
+    - op: add
+      path: "/spec/containers/0/env/-"
+      value:
+        name: MY_NEW_ENV1
+        value: "1"
+----
+
+* dnsConfig
++
+[source,yaml]
+----
+patches:
+- patch: |-
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      name: ${POD_NAME}
+    spec:
+      dnsPolicy: None
+      dnsConfig:
+        nameservers:
+        - ${PRIVATE_NS}
+----
+
+* replace metadata.name
++
+[source,yaml]
+----
+- target:
+    version: v1
+    kind: Pod
+    name: nginx-simple-env-new-app
+  patch: |-
+    - op: replace
+      path: /metadata/name
+      value: nginx-kustomize-new-env
+----
+
+==== Deployment
+
+* mountPath
++
+[source,yaml]
+----
+patches:
+  - target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: ${APP_NAME}
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/volumeMounts/0/mountPath
+        value: /var/lib/registry/auth
+----

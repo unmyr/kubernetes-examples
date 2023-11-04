@@ -1,0 +1,43 @@
+== kustomize env examples
+
+=== Generate
+
+. Create a namespace
++
+[source,shell]
+----
+NAMESPACE="kustomize-deploy-demo"
+kubectl create ns "${NAMESPACE:-default}" --dry-run=client -o yaml | kubectl apply -f -
+----
+
+. Verify replacements
++
+[source,shell]
+----
+kubectl kustomize ./
+----
+
+. Deploy
++
+[source,shell]
+----
+kubectl kustomize ./ | kubectl apply -f -
+kubectl get -n "${NAMESPACE:-default}" all
+----
+
+. Show environments
++
+[source,shell]
+----
+kubectl get -n "${NAMESPACE:-default}" pods -o jsonpath="{range .items[*]}{.metadata.name}{'\n'}{end}" | while read POD_NAME; do
+    (set -x; kubectl get -n "${NAMESPACE:-default}" pod/${POD_NAME} -o jsonpath="{.spec.containers[0].env}{'\n'}")
+done
+----
+
+. Delete deployments
++
+[source,shell]
+----
+kubectl kustomize ./ | kubectl delete -f -
+kubectl delete ns "${NAMESPACE:-default}"
+----

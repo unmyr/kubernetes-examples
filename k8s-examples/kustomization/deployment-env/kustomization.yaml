@@ -1,0 +1,49 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: kustomize-deploy-demo
+commonLabels:
+  app.kubernetes.io/part-of: kustomize-deploy-demo
+resources:
+- deployment.yaml
+
+patches:
+- target:
+    group: apps
+    version: v1
+    kind: Deployment
+    name: nginx-simple-env-new-deployment
+  patch: |-
+    - op: add
+      path: "/spec/template/spec/containers/0/env/-"
+      value:
+        name: MY_NEW_ENV1
+        value: "1"
+- target:
+    group: apps
+    version: v1
+    kind: Deployment
+    name: nginx-simple-env-new-deployment
+  patch: |-
+    - op: replace
+      path: /metadata/name
+      value: nginx-kustomize-new-env
+- target:
+    group: apps
+    version: v1
+    kind: Deployment
+    name: nginx-simple-env-add-deployment
+  patch: |-
+    - op: add
+      path: "/spec/template/spec/containers/0/env/-"
+      value:
+        name: MY_ADD_ENV2
+        value: "2"
+- target:
+    group: apps
+    version: v1
+    kind: Deployment
+    name: nginx-simple-env-add-deployment
+  patch: |-
+    - op: replace
+      path: /metadata/name
+      value: nginx-kustomize-add-env
