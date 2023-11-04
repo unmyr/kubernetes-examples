@@ -3,4 +3,4 @@
 <<k8s_kind.adoc#,Kind>> {vbar}
 <<k8s_kpack.adoc#,Kpack>> {vbar}
 <<k8s_tekton.adoc#,Tekton>> {vbar}
-<<kustomize.adoc#,Kustomize>> +
+<<k8s_kustomize.adoc#,Kustomize>> +
