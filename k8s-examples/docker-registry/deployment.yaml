@@ -20,22 +20,31 @@ spec:
         image: registry:2
         envFrom:
         env:
-        - name: MY_SERVICE_NAME
-          valueFrom:
-            configMapKeyRef:
-              name: my-private-registry
-              key: MY_SERVICE_NAME
         - name: MY_POD_NAMESPACE
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
+        - name: REGISTRY_HTTP_TLS_CERTIFICATE
+          valueFrom:
+            configMapKeyRef:
+              name: my-private-registry
+              key: REGISTRY_HTTP_TLS_CERTIFICATE
+        - name: REGISTRY_HTTP_TLS_KEY
+          valueFrom:
+            configMapKeyRef:
+              name: my-private-registry
+              key: REGISTRY_HTTP_TLS_KEY
         - name: REGISTRY_AUTH_HTPASSWD_PATH
           valueFrom:
             configMapKeyRef:
               name: my-private-registry
               key: REGISTRY_AUTH_HTPASSWD_PATH
         - name: REGISTRY_HTTP_HOST
-          value: "http://$(MY_SERVICE_NAME).$(MY_POD_NAMESPACE).svc:5000"
+          value: "https://registry.kind-1.lan:5000"
+          valueFrom:
+            configMapKeyRef:
+              name: my-private-registry
+              key: REGISTRY_HTTP_HOST
         - name: REGISTRY_AUTH_HTPASSWD_REALM
           value: "Registry Realm"
         ports:
@@ -43,7 +52,17 @@ spec:
         volumeMounts:
         - name: my-private-registry-volume
           mountPath: "/var/lib/registry/auth"  # replace
+        - name: certificate-volume
+          mountPath: "/var/lib/registry/certs"
+        - name: ca-certificate-volume
+          mountPath: "/etc/docker/certs.d"
       volumes:
       - name: my-private-registry-volume
         configMap:
           name: my-private-registry
+      - name: certificate-volume
+        secret:
+          secretName: my-private-registry-certificate
+      - name: ca-certificate-volume
+        secret:
+          secretName: ca-certificate

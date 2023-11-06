@@ -1,0 +1,19 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  name: greet-go-pod
+  namespace: greet-go
+spec:
+  restartPolicy: Never
+  containers:
+  - name: default
+    # image: registry.kind-1.lan:5000/greet-go:0.1
+    image: example.com:5000/greet-go:0.1
+    imagePullPolicy: IfNotPresent
+    ports:
+    - containerPort: 8080
+  imagePullSecrets:
+  - name: reg-cred
+status: {}

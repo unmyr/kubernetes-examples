@@ -33,39 +33,78 @@ kubectl run -q -n "${NAMESPACE:-default}" -it --rm curl --image=curlimages/curl 
 echo -n "********" > ~/.pass-alice
 ----
 
+. Set shell variable
++
+[source,shell]
+----
+REGISTRY_FQDN_AND_PORT="registry.kind-1.lan:5000"; REPO="greet-go"; TAG="0.1"
+----
+
 . Get catalog
 +
 [source,shell]
 ----
-REGISTRY_FQDN_AND_PORT="my-registry.my-private-registry-demo.svc:5000"
-curl -u alice:$(cat ~/.pass-alice) -v http://${REGISTRY_FQDN_AND_PORT}/v2/_catalog
+curl -s -u alice:$(cat .pass-alice) https://${REGISTRY_FQDN_AND_PORT}/v2/_catalog
+----
++
+[source,json]
+----
+{"repositories":[]}
 ----
 
-
-==== Test docker login (failed)
-
-. Run docker image
+* Login
 +
 [source,shell]
 ----
-kubectl run -q -n "${NAMESPACE:-default}" -it docker-client --image=docker --restart=Never -- sh
+cat .pass-alice | docker login --username alice --password-stdin http://${REGISTRY_FQDN_AND_PORT}
+----
++
+[source,plaintext]
+----
+...snip...
+Login Succeeded
 ----
 
-. Store password
+* Add tag
 +
 [source,shell]
 ----
-echo -n "********" > ~/.pass-alice
+(set -x; docker image tag ${REPO}:${TAG} ${REGISTRY_FQDN_AND_PORT}/${REPO}:${TAG})
+(set -x; docker image ls --filter reference=${REGISTRY_FQDN_AND_PORT}/${REPO})
 ----
-
-. (Error) Execute docker login
 +
 [source,console]
 ----
-/ # REGISTRY_FQDN_AND_PORT="my-registry.my-private-registry-demo.svc:5000"
-/ # docker login http://my-registry.my-private-registry-demo.svc:5000
-/ # cat .pass-alice | docker login --username alice --password-stdin http://${REGISTRY_FQDN_AND_PORT} 
-Username: alice
-Password: 
-error during connect: Post "http://docker:2375/v1.24/auth": dial tcp: lookup docker on 10.96.0.10:53: server misbehaving
++ docker image tag greet-go:0.1 registry.kind-1.lan:5000/greet-go:0.1
++ docker image ls --filter reference=registry.kind-1.lan:5000/greet-go
+REPOSITORY                          TAG       IMAGE ID       CREATED      SIZE
+registry.kind-1.lan:5000/greet-go   0.1       153c6379ac7e   5 days ago   12.4MB
+----
+
+* Push the image
++
+[source,shell]
+----
+(set -x; docker push ${REGISTRY_FQDN_AND_PORT}/${REPO}:${TAG})
+----
++
+[source,console]
+----
+$ docker push registry.kind-1.lan:5000/greet-go:0.1
+The push refers to repository [registry.kind-1.lan:5000/greet-go]
+05e28d3d0848: Pushed 
+0e182002b05f: Pushed 
+0.1: digest: sha256:32799ea09c420209231f77d1c9f00bcc08de9e979527da99bd9ed74480b7752a size: 739
+----
+
+. Get catalog
++
+[source,shell]
+----
+curl -u alice:$(cat .pass-alice) https://${REGISTRY_FQDN_AND_PORT}/v2/_catalog
+----
++
+[source,json]
+----
+{"repositories":["greet-go"]}
 ----
