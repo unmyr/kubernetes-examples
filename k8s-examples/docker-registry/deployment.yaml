@@ -18,6 +18,7 @@ spec:
       containers:
       - name: docker-registry
         image: registry:2
+        imagePullPolicy: IfNotPresent
         envFrom:
         env:
         - name: MY_POD_NAMESPACE
@@ -40,7 +41,6 @@ spec:
               name: my-private-registry
               key: REGISTRY_AUTH_HTPASSWD_PATH
         - name: REGISTRY_HTTP_HOST
-          value: "https://registry.kind-1.lan:5000"
           valueFrom:
             configMapKeyRef:
               name: my-private-registry
