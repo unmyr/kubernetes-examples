@@ -78,33 +78,25 @@ REPOSITORY   TAG       IMAGE ID       CREATED          SIZE
 greet-go     0.1       153c6379ac7e   2 minutes ago   12.4MB
 ----
 
-. (Optional) Push to docker private registry.
+==== Build docker using Buildpacks
+
+. Install `add-apt-repository`
 +
 [source,shell]
 ----
-REGISTRY_FQDN_AND_PORT="docker.example.internal:5443"
-REPO_AND_TAG="greet-go:0.1"
-(set -x; docker image tag ${REPO_AND_TAG} ${REGISTRY_FQDN_AND_PORT}/${REPO_AND_TAG})
-(set -x; docker push ${REGISTRY_FQDN_AND_PORT}/${REPO_AND_TAG})
-(set -x; docker image ls --filter "reference=${REGISTRY_FQDN_AND_PORT}/greet-go*")
-----
-+
-[source,console]
-----
-$ docker image tag ${REPO_AND_TAG} ${REGISTRY_FQDN_AND_PORT}/${REPO_AND_TAG}
-(set -x; docker push ${REGISTRY_FQDN_AND_PORT}/${REPO_AND_TAG})
-+ docker push docker.example.internal:5443/greet-go:0.1
-The push refers to repository [docker.example.internal:5443/greet-go]
-05e28d3d0848: Pushed 
-0e182002b05f: Pushed 
-0.1: digest: sha256:32799ea09c420209231f77d1c9f00bcc08de9e979527da99bd9ed74480b7752a size: 739
-$ (set -x; docker image ls --filter "reference=${REGISTRY_FQDN_AND_PORT}/greet-go*")
-+ docker image ls --filter 'reference=docker.example.internal:5443/greet-go*'
-REPOSITORY                              TAG       IMAGE ID       CREATED         SIZE
-docker.example.internal:5443/greet-go   0.1       153c6379ac7e   5 minutes ago   12.4MB
+sudo apt install software-properties-common
 ----
 
-==== Build docker using Buildpacks
+. Install dependency +
+https://buildpacks.io/docs/tools/pack/[Pack · Cloud Native Buildpacks^]
++
+[source,shell]
+----
+sudo apt install software-properties-common
+sudo add-apt-repository ppa:cncf-buildpacks/pack-cli
+sudo apt-get update
+sudo apt-get install pack-cli
+----
 
 . Build a docker image
 +
@@ -127,8 +119,8 @@ docker image ls --filter "reference=greet-go*"
 ----
 $ docker image ls --filter "reference=greet-go*"
 REPOSITORY   TAG       IMAGE ID       CREATED              SIZE
-greet-go     0.1       8e9675951312   About a minute ago   99.6MB
-greet-go     latest    8e9675951312   About a minute ago   99.6MB
+greet-go     0.1       b5d013ec0f62   52 seconds ago   100MB
+greet-go     latest    b5d013ec0f62   52 seconds ago   100MB
 ----
 
 === Test docker image
@@ -163,19 +155,35 @@ docker ps --filter name=greet-go
 
 . Request to docker
 +
-[source,console]
+--
+* Loopback
++
+[source,shell]
 ----
-$ curl -s http://127.0.0.1:8080/api/greet/John | python3 -m json.tool
+curl -s http://127.0.0.1:8080/api/greet/John | python3 -m json.tool
+----
++
+[source,json]
+----
 {
     "message": "Hello, John!"
 }
-$ docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' greet-go
-172.17.0.2
-$ curl -s http://172.17.0.2:8080/api/greet/John | python3 -m json.tool
+----
+
+* Using container IP
++
+[source,shell]
+----
+curl -s http://$(docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' greet-go):8080/api/greet/John | python3 -m json.tool
+----
++
+[source,json]
+----
 {
-  "message": "Hello, John!"
+    "message": "Hello, John!"
 }
 ----
+--
 
 . Stop docker
 

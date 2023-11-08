@@ -1,4 +1,4 @@
-FROM golang:1.21.3-alpine3.18 as builder
+FROM golang:1.20.11-alpine3.18 as builder
 COPY ./main.go ./
 RUN go build -o /go-app main.go
 
