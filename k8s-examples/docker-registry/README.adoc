@@ -56,7 +56,7 @@ curl -s -u alice:$(cat .pass-alice) https://${REGISTRY_FQDN_AND_PORT}/v2/_catalo
 +
 [source,shell]
 ----
-cat .pass-alice | docker login --username alice --password-stdin http://${REGISTRY_FQDN_AND_PORT}
+cat .pass-alice | docker login --username alice --password-stdin https://${REGISTRY_FQDN_AND_PORT}
 ----
 +
 [source,plaintext]
@@ -69,16 +69,21 @@ Login Succeeded
 +
 [source,shell]
 ----
+(set -x; docker image ls --filter reference=${REPO})
 (set -x; docker image tag ${REPO}:${TAG} ${REGISTRY_FQDN_AND_PORT}/${REPO}:${TAG})
 (set -x; docker image ls --filter reference=${REGISTRY_FQDN_AND_PORT}/${REPO})
 ----
 +
 [source,console]
 ----
++ docker image ls --filter reference=greet-go
+REPOSITORY   TAG       IMAGE ID       CREATED      SIZE
+greet-go     0.1       b5d013ec0f62   5 days ago   100MB
+greet-go     latest    b5d013ec0f62   5 days ago   100MB
 + docker image tag greet-go:0.1 registry.kind-1.lan:5000/greet-go:0.1
 + docker image ls --filter reference=registry.kind-1.lan:5000/greet-go
 REPOSITORY                          TAG       IMAGE ID       CREATED      SIZE
-registry.kind-1.lan:5000/greet-go   0.1       153c6379ac7e   5 days ago   12.4MB
+registry.kind-1.lan:5000/greet-go   0.1       b5d013ec0f62   5 days ago   100MB
 ----
 
 * Push the image
@@ -108,3 +113,26 @@ curl -u alice:$(cat .pass-alice) https://${REGISTRY_FQDN_AND_PORT}/v2/_catalog
 ----
 {"repositories":["greet-go"]}
 ----
+
+. Get tags
++
+[source,shell]
+----
+(set -x; curl -i -X GET --cacert certs/docker-registry.crt -u alice:$(cat .pass-alice) https://${REGISTRY_FQDN_AND_PORT}/v2/${REPO}/tags/list)
+----
++
+[source,json]
+----
+{"name":"greet-go","tags":["0.1"]}
+----
+
+. Pulling an Image Manifest
++
+[source,shell]
+----
+(set -x; curl -i -X GET --cacert certs/docker-registry.crt -u alice:$(cat .pass-alice) https://${REGISTRY_FQDN_AND_PORT}/v2/${REPO}/manifests/${TAG})
+----
+
+
+.References
+* https://distribution.github.io/distribution/spec/api/[HTTP API V2 | CNCF Distribution^]

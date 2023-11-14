@@ -50,10 +50,12 @@ spec:
         ports:
         - containerPort: 5000
         volumeMounts:
+        - name: docker-registry-volume
+          mountPath: "/var/lib/registry"       # replace
         - name: my-private-registry-volume
           mountPath: "/var/lib/registry/auth"  # replace
         - name: certificate-volume
-          mountPath: "/var/lib/registry/certs"
+          mountPath: "/var/lib/registry/certs" # replace
         - name: ca-certificate-volume
           mountPath: "/etc/docker/certs.d"
       volumes:
@@ -66,3 +68,6 @@ spec:
       - name: ca-certificate-volume
         secret:
           secretName: ca-certificate
+      - name: docker-registry-volume
+        persistentVolumeClaim:
+          claimName: docker-registry

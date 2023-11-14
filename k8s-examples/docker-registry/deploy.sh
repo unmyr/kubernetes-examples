@@ -19,7 +19,8 @@ create)
         pwgen 12 1 | tr -d '\n' > .pass-alice
         cat .pass-alice | htpasswd -B -i -c basic-auth/registry.password alice
     fi
-    REGISTRY_AUTH_HTPASSWD_PATH=/var/lib/registry/auth/registry.password
+    REGISTRY_ROOT=/var/lib/registry
+    REGISTRY_AUTH_HTPASSWD_PATH=${REGISTRY_ROOT}/auth/registry.password
     cat <<EOF > kustomization.yaml
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
@@ -30,6 +31,7 @@ namespace: ${NAMESPACE}
 resources:
 - deployment.yaml
 - service.yaml
+- pvc.yaml
 
 configMapGenerator:
 - name: my-private-registry
@@ -38,8 +40,8 @@ configMapGenerator:
   literals:
   - REGISTRY_AUTH_HTPASSWD_PATH=${REGISTRY_AUTH_HTPASSWD_PATH}
   - REGISTRY_HTTP_HOST=${REGISTRY_FQDN_AND_PORT}
-  - REGISTRY_HTTP_TLS_CERTIFICATE=/var/lib/registry/certs/docker-registry.crt
-  - REGISTRY_HTTP_TLS_KEY=/var/lib/registry/certs/docker-registry.key
+  - REGISTRY_HTTP_TLS_CERTIFICATE=${REGISTRY_ROOT}/certs/docker-registry.crt
+  - REGISTRY_HTTP_TLS_KEY=${REGISTRY_ROOT}/certs/docker-registry.key
 
 secretGenerator:
 - name: my-private-registry-certificate
@@ -59,7 +61,13 @@ patches:
     patch: |-
       - op: replace
         path: /spec/template/spec/containers/0/volumeMounts/0/mountPath
-        value: /var/lib/registry/auth
+        value: ${REGISTRY_ROOT}
+      - op: replace
+        path: /spec/template/spec/containers/0/volumeMounts/1/mountPath
+        value: ${REGISTRY_ROOT}/auth
+      - op: replace
+        path: /spec/template/spec/containers/0/volumeMounts/2/mountPath
+        value: ${REGISTRY_ROOT}/certs
 EOF
     set -x
     kubectl create ns "${NAMESPACE:-default}" --dry-run=client -o yaml | kubectl apply -f -
@@ -84,6 +92,14 @@ show)
     set -x
     kubectl get -n "${NAMESPACE:-default}" all,configmap
     kubectl get -n "${NAMESPACE:-default}" events
+    ;;
+
+show-registry)
+    REPO="greet-go"; TAG="0.1"
+    set -x
+    curl -u alice:$(cat .pass-alice) https://${REGISTRY_FQDN_AND_PORT}/v2/_catalog
+    curl -i -X GET --cacert certs/docker-registry.crt -u alice:$(cat .pass-alice) https://${REGISTRY_FQDN_AND_PORT}/v2/${REPO}/tags/list
+    curl -i -X GET --cacert certs/docker-registry.crt -u alice:$(cat .pass-alice) https://${REGISTRY_FQDN_AND_PORT}/v2/${REPO}/manifests/${TAG}
     ;;
 
 esac
