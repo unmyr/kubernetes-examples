@@ -8,8 +8,13 @@ $0 apply [--dry-run]
 $0 delete
 $0 {describe|logs|show}
 $0 {test-cluster-ip|test-external}
+$0 {show-registry}
 EOF
 }
+
+SCRIPT_PATH_IN=${BASH_SOURCE:-$0}
+SCRIPT_NAME=$(basename ${SCRIPT_PATH_IN} .sh)
+SCRIPT_DIR=$(dirname ${SCRIPT_PATH_IN})
 
 GETOPT_TEMP=$(getopt -o n:v --long dry-run,namespace: -- "$@")
 eval set -- "${GETOPT_TEMP}"
@@ -120,11 +125,13 @@ logs)
     kubectl logs -n "${NAMESPACE:-default}" pod/${POD_NAME}
     ;;
 
-registry)
+show-registry)
     test -z "${REGISTRY_FQDN_AND_PORT}" && { echo "ERROR: A required environment variable is missing. : NAME='REGISTRY_FQDN_AND_PORT'"; exit 1;}
+    DOCKER_USER="alice"
+    DOCKER_PASS=$(cat ${SCRIPT_DIR}/../.pass-alice)
     set -x
-    curl -u alice:$(cat .pass-alice) https://${REGISTRY_FQDN_AND_PORT}/v2/_catalog
-    curl -X GET -u alice:$(cat .pass-alice) https://${REGISTRY_FQDN_AND_PORT}/v2/greet-go/tags/list
+    curl -u ${DOCKER_USER}:${DOCKER_PASS} https://${REGISTRY_FQDN_AND_PORT}/v2/_catalog
+    curl -X GET -u ${DOCKER_USER}:${DOCKER_PASS} https://${REGISTRY_FQDN_AND_PORT}/v2/greet-go/tags/list
     ;;
 
 test-cluster-ip)
@@ -139,7 +146,7 @@ test-cluster-ip)
 test-external)
     set -x
     EXTERNAL_IP_AND_PORT=$(kubectl get -n "${NAMESPACE:-default}" services "${SERVICE_NAME}" -o 'jsonpath={.status.loadBalancer.ingress[*].ip}{":"}{.spec.ports[0].port}')
-    curl -s http://${EXTERNAL_IP_AND_PORT}/api/greet/John --header "Content-Type: application/json" | python3 -m json.tool
+    curl -v http://${EXTERNAL_IP_AND_PORT}/api/greet/John --header "Content-Type: application/json" | python3 -m json.tool
     ;;
 
 esac
