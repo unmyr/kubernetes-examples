@@ -60,6 +60,27 @@ patches:
 
 ==== Deployment
 
+* images
++
+[source,yaml]
+----
+images:
+- name: nginx
+  # https://hub.docker.com/_/nginx
+  newName: nginx
+  newTag: 1.25.3
+patches:
+- target:
+    group: apps
+    version: v1
+    kind: Deployment
+    name: ${APP_NAME}
+  patch: |-
+    - op: replace
+      path: "/spec/template/spec/containers/0/imagePullPolicy"
+      value: IfNotPresent
+----
+
 * mountPath
 +
 [source,yaml]
