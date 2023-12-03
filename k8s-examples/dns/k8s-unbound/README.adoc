@@ -9,12 +9,12 @@
 cp -p /etc/ssl/certs/ca-certificates.crt ./certs/
 ----
 
-. Create `unbound.conf.d/unbound.conf``
+. Create `unbound.conf.d/unbound.conf`
 
 
 === Apply/Delete
 
-* Apply
+* Apply and generate `.env.svc`
 +
 [source,shell]
 ----
@@ -46,8 +46,8 @@ UNBOUND_IP=$(kubectl get -n "${NAMESPACE:-default}" -l app=unbound svc -o jsonpa
 +
 [source,shell]
 ----
-dig @${UNBOUND_IP} www.google.com
-dig @${UNBOUND_IP} example.lan
+dig @${UNBOUND_IP} www.google.com.
+dig @${UNBOUND_IP} example.lan.
 ----
 --
 
