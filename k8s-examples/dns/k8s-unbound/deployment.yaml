@@ -1,0 +1,48 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: unbound
+  name: unbound
+  namespace: unbound
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: unbound
+  template:
+    metadata:
+      labels:
+        app: unbound
+    spec:
+      containers:
+      # https://hub.docker.com/r/mvance/unbound/
+      - image: mvance/unbound
+        name: unbound
+        ports:
+          - name: udp
+            containerPort: 53
+        volumeMounts:
+          - name: unbound-conf
+            mountPath: /opt/unbound/etc/unbound/unbound.conf
+            subPath: unbound.conf
+          - name: certs
+            mountPath: /etc/ssl/certs/ca-certificates.crt
+            subPath: ca-certificates.crt
+      volumes:
+        - name: unbound-conf
+          configMap:
+            name: unbound-conf
+            items:
+              - key: unbound.conf
+                path: unbound.conf
+                mode: 0644
+        - name: certs
+          secret:
+            secretName: certs
+            defaultMode: 0600
+            items:
+              - key: ca-certificates.crt
+                path: ca-certificates.crt
+                mode: 0644

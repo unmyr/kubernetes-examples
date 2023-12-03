@@ -1,0 +1,16 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: unbound
+  namespace: unbound
+  labels:
+    app: unbound
+spec:
+  ports:
+    - name: dns
+      port: 53
+      protocol: UDP
+  selector:
+    app: unbound
+  type: LoadBalancer

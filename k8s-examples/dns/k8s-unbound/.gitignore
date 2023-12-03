@@ -1,0 +1,12 @@
+# SSL Certificates
+certs/
+
+# Docker credentials
+.docker/
+
+# Kustomize
+.kustomization-out.yaml
+
+# misc
+.pass*
+unbound.conf.d/

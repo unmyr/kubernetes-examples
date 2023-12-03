@@ -1,0 +1,59 @@
+== Unbound example
+
+=== Setup
+
+. Store SSL certs
++
+[source,shell]
+----
+cp -p /etc/ssl/certs/ca-certificates.crt ./certs/
+----
+
+. Create `unbound.conf.d/unbound.conf``
+
+
+=== Apply/Delete
+
+* Apply
++
+[source,shell]
+----
+./deploy.sh apply
+----
+
+* Test DNS
++
+--
+. Set shell variable
+
+** Load from file
++
+[source,shell]
+----
+. .env.svc
+----
+
+** Or, load manually
++
+[source,shell]
+----
+NAMESPACE="unbound"
+APP_NAME="unbound"
+UNBOUND_IP=$(kubectl get -n "${NAMESPACE:-default}" -l app=unbound svc -o jsonpath='{.items[*].status.loadBalancer.ingress[*].ip}')
+----
+
+. Test
++
+[source,shell]
+----
+dig @${UNBOUND_IP} www.google.com
+dig @${UNBOUND_IP} example.lan
+----
+--
+
+* Delete
++
+[source,shell]
+----
+./deploy.sh apply
+----
