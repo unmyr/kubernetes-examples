@@ -337,16 +337,25 @@ kubectl create ns "${NAMESPACE:-default}" --dry-run=client -o yaml | kubectl app
 
 === Nodes
 
-[source,console]
-----
-$ kubectl get nodes --show-labels
-NAME                   STATUS   ROLES           AGE   VERSION   LABELS
-kind-1-control-plane   Ready    control-plane   45d   v1.24.0   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=kind-1-control-plane,kubernetes.io/os=linux,node-role.kubernetes.io/control-plane=,node.kubernetes.io/exclude-from-external-load-balancers=
-----
-
+* Show node with labels
++
 [source,shell]
 ----
-kubectl get nodes kind-1-control-plane -o jsonpath="{.metadata.labels.kubernetes\.io/hostname}"
+kubectl get nodes --show-labels
+----
+
+* Show node names
++
+[source,shell]
+----
+kubectl get nodes -o custom-columns="Name:{metadata.name},Hostname:{metadata.labels.kubernetes\.io/hostname}"
+----
+
+* Show node IP addresses
++
+[source,shell]
+----
+kubectl get nodes -o custom-columns="Name:{metadata.name},IP:{status.addresses[].address}"
 ----
 
 .References
