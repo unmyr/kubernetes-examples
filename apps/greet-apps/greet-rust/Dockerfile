@@ -1,12 +1,14 @@
-FROM ekidd/rust-musl-builder:stable as builder
+# https://hub.docker.com/_/rust/
+FROM rust:1.76 as builder
 
-WORKDIR /home/rust
+WORKDIR /usr/src/myapp
 COPY src/* src/
 COPY Cargo.toml .
-RUN cargo build --release --target x86_64-unknown-linux-musl
+RUN cargo build --release
 
-FROM alpine:latest
+# https://hub.docker.com/_/debian
+FROM debian:12.5-slim
 WORKDIR /opt/server
-COPY --from=builder /home/rust/target/x86_64-unknown-linux-musl/release/greet-rust . 
+COPY --from=builder /usr/src/myapp/target/release/greet-rust .
 EXPOSE 8080
-ENTRYPOINT [ "./greet-rust" ]
+ENTRYPOINT [ "/opt/server/greet-rust" ]

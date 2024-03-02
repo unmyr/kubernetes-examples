@@ -35,84 +35,122 @@ $ curl http://localhost:8080/hello/John
 
 === Build docker
 
+. Remove old image (Optional)
++
+[source,shell]
+----
+docker image ls --filter reference=greet-rust:0.1 --format '{{.ID}}' | xargs --no-run-if-empty docker rmi
+----
+
 . Build a docker image
++
+[source,shell]
+----
+docker image build --tag greet-rust:0.1 .
+----
 +
 ----
 $ docker image build --tag greet-rust:0.1 .
 ...
-$ docker image ls | head -3
-REPOSITORY                TAG               IMAGE ID       CREATED          SIZE
-greet-rust                0.1               4747b036d01c   38 seconds ago   14MB
-<none>                    <none>            5448a38c7f11   3 minutes ago    1.89GB
+$ docker image ls --filter reference=greet-rust
+REPOSITORY   TAG       IMAGE ID       CREATED         SIZE
+greet-rust   0.1       a0e11b1a25ba   5 minutes ago   16.8MB
 ----
-
-.References
-* https://hub.docker.com/r/ekidd/rust-musl-builder[ekidd/rust-musl-builder - Docker Image | Docker Hub^]
-* https://hub.docker.com/_/rust[rust - Official Image | Docker Hub^] +
-  rust alpine build docker image - Google Search
-* https://levelup.gitconnected.com/create-an-optimized-rust-alpine-docker-image-1940db638a6c[Create an Optimized Rust Alpine Docker Image | by Pascal Zwikirsch | Level Up Coding^] +
-  rust alpine build docker image - Google Search
-* https://zenn.dev/kyoheiu/articles/dcefe0c75f0e17[(1.59.0対応) Rustを軽量イメージ化するためのDockerfile^] +
-  rust alpine image - Google 検索
 
 === Test docker image
 
+. Create docker network
++
+[source,shell]
+----
+docker network create --subnet=172.19.0.0/24 greet-net
+----
+
+. List and Show network settings
++
+[source,shell]
+----
+(set -x;
+ docker network ls --filter name=greet-net;
+ docker network inspect greet-net --format '{{json .IPAM.Config}}')
+----
++
+[source,console]
+----
+$ (set -x;
+ docker network ls --filter name=greet-net;
+ docker network inspect greet-net --format '{{json .IPAM.Config}}')
++ docker network ls --filter name=greet-net
+NETWORK ID     NAME        DRIVER    SCOPE
+ca87ff4008aa   greet-net   bridge    local
++ docker network inspect greet-net --format '{{json .IPAM.Config}}'
+[{"Subnet":"172.19.0.0/24"}]
+----
+
+. Get container ip
++
+[source,shell]
+----
+CONTAINER_IP="172.19.0.100"
+----
+
 . Run docker
 +
-[source,console]
+[source,shell]
 ----
-$ docker network create --subnet=172.19.0.0/24 greet-net
-
-$ docker network ls
-NETWORK ID     NAME        DRIVER    SCOPE
-e4de57d51ab0   bridge      bridge    local
-f17d96919d86   greet-net   bridge    local
-07906dfdeb1b   host        host      local
-cb34625844b6   kind        bridge    local
-49fa216f1f3a   none        null      local
-$ docker network inspect greet-net --format '{{json .IPAM.Config}}' | python3 -m json.tool
-[
-    {
-        "Subnet": "172.19.0.0/24"
-    }
-]
-$ docker run --name greet-rust -p 8080:8080 --rm -d --net=greet-net --ip=172.19.0.100 greet-rust:0.1 172.19.0.100
+docker run --name greet-rust -p 8080:8080 --rm -d --net=greet-net --ip=${CONTAINER_IP} greet-rust:0.1 "${CONTAINER_IP}"
 ----
 +
-[source,console]
+[source,shell]
 ----
-$ docker container ls --filter name=greet-rust
+docker container ls --filter name=greet-rust
 ----
 +
-[source,console]
+[source,shell]
 ----
-$ docker ps --filter name=greet-rust
+docker ps --filter name=greet-rust
 ----
 
 . Request to docker
 +
-[source,console]
-----
-$ curl -s http://127.0.0.1:8080/hello/John | python3 -m json.tool
-{
-    "message": "Hello John!"
-}
-
-$ docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' greet-rust
-172.19.0.100
-
-$ curl -s http://172.19.0.100:8080/hello/John | python3 -m json.tool
-{
-    "message": "Hello John!"
-}
-----
-
-. Stop docker
+--
+* Request to localhost
 +
-[source,console]
+[source,shell]
 ----
-$ docker stop greet-rust
-$ docker network rm greet-net
+curl -s http://127.0.0.1:8080/hello/John | python3 -m json.tool
+----
++
+[source,json]
+.Outputs
+----
+{
+    "message": "Hello John!"
+}
+----
+
+* Request to bridge docker network
++
+[source,shell]
+----
+CONTAINER_IP=$(docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' greet-rust)
+curl -s http://${CONTAINER_IP}:8080/hello/John | python3 -m json.tool
+----
++
+[source,json]
+.Outputs
+----
+{
+    "message": "Hello John!"
+}
+----
+--
+
+. Stop docker and Remove bridge network
++
+[source,shell]
+----
+(set -x; docker stop greet-rust; docker network rm greet-net)
 ----
 
 ==== Docker compose
@@ -172,18 +210,22 @@ Image: "greet-rust:0.1" with ID "sha256:4747b036d01caf7eac0bc110de70fac0fd1d8c18
 +
 [source,console]
 ----
+$ kind get nodes --name kind-1
+kind-1-control-plane
+kind-1-worker
 $ docker exec -it kind-1-control-plane crictl images
 IMAGE                                      TAG                  IMAGE ID            SIZE
 ...
 docker.io/library/greet-rust               0.1                  4747b036d01ca       14.2MB
 ...
+$ docker exec -it kind-1-worker crictl images
 ----
 
 . Deploy
 +
 [source,console]
 ----
-$ kubectl apply -f kind/greet-rust.pod.yaml
+$ kubectl apply -f ../greet-rust.pod.yaml
 pod/greet-rust-pod created
 service/greet-rust-service created
 $ kubectl get service greet-rust-service
@@ -197,7 +239,7 @@ server is listening on 10.244.0.7:8080 port
 +
 [source,console]
 ----
-$ curl -s http://172.18.254.240:3000/hello/John | python3 -m json.tool
+$ curl -s http://172.18.254.243:3000/hello/John | python3 -m json.tool
 {
     "message": "Hello John!"
 }
@@ -209,28 +251,39 @@ $ curl -s http://$(kubectl get services greet-rust-service -o jsonpath='{.status
 
 . Remove apps
 +
+[source,shell]
+----
+kubectl delete -f ../greet-rust.pod.yaml
+----
++
 [source,console]
 ----
-$ kubectl delete -f kind/greet-rust.pod.yaml
+$ kubectl delete -f ../greet-rust.pod.yaml
 pod "greet-rust-pod" deleted
 service "greet-rust-service" deleted
 ----
 
+. Remove image in kind-1
++
+[source,shell]
+----
+KIND_NODE="kind-1-worker"
+docker exec -it "${KIND_NODE}" crictl images
+docker exec -it "${KIND_NODE}" crictl rmi $(docker exec -it "${KIND_NODE}" crictl images -o json | jq '.images[] | select(.repoTags[] | contains("rust")) | .id' -r | sed -e 's/^sha256:\(........\).*/\1/')
+
+KIND_NODE="kind-1-control-plane"
+docker exec -it "${KIND_NODE}" crictl images
+docker exec -it "${KIND_NODE}" crictl rmi $(docker exec -it "${KIND_NODE}" crictl images -o json | jq '.images[] | select(.repoTags[] | contains("rust")) | .id' -r | sed -e 's/^sha256:\(........\).*/\1/')
+----
+
+. Remove docker images (Optional)
++
+[source,shell]
+----
+docker image ls --filter reference=greet-rust:0.1 --format '{{.ID}}' | xargs --no-run-if-empty docker rmi
+----
+
 === Troubleshooting
-
-==== currently active rustc version is 1.59.0
-
-[source,console]
-----
-$ docker image build --tag greet-rust:0.1 .
-Sending build context to Docker daemon  1.198GB
-Step 1/10 : FROM ekidd/rust-musl-builder:stable as builder
-stable: Pulling from ekidd/rust-musl-builder
-...
-  Downloaded actix-http v3.2.1
-error: package `greet-rust v0.1.0 (/home/rust)` cannot be built because it requires rustc 1.63 or newer, while the currently active rustc version is 1.59.0
-The command '/bin/sh -c cargo build --release --target x86_64-unknown-linux-musl' returned a non-zero code: 101
-----
 
 ==== curl: (56) Recv failure: Connection reset by peer
 The first connection with the created Docker image failed.
