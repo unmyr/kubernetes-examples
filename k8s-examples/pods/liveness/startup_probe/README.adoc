@@ -1,0 +1,52 @@
+=== exec-startup-probe.yaml
+
+. Create namespace
++
+[source,shell]
+----
+kubectl create ns "${NAMESPACE:-liveness-test}" --dry-run=client -o yaml | kubectl apply -f -
+----
+
+. Deploy & wait, and delete
++
+[source,shell]
+----
+(set -x; kubectl apply -n "${NAMESPACE:-liveness-test}" -f exec-startup-probe.yaml; time kubectl wait -n "${NAMESPACE:-liveness-test}" --for=condition=Ready pods --selector=app=liveness-test --timeout=20s; kubectl get -n "${NAMESPACE:-liveness-test}" events --sort-by='.lastTimestamp'; kubectl get -n "${NAMESPACE:-liveness-test}" pod startup-probe-exec; time kubectl -n "${NAMESPACE:-liveness-test}" delete -f exec-startup-probe.yaml)
+----
++
+[source,console]
+----
+$ (set -x; kubectl apply -n "${NAMESPACE:-liveness-test}" -f exec-startup-probe.yaml; time kubectl wait -n "${NAMESPACE:-liveness-test}" --for=condition=Ready pods --selector=app=liveness-test --timeout=20s; kubectl get -n "${NAMESPACE:-liveness-test}" events --sort-by='.lastTimestamp'; kubectl get -n "${NAMESPACE:-liveness-test}" pod startup-probe-exec; time kubectl -n "${NAMESPACE:-liveness-test}" delete -f exec-startup-probe.yaml)
++ kubectl apply -n liveness-test -f exec-startup-probe.yaml
+pod/startup-probe-exec created
++ kubectl wait -n liveness-test --for=condition=Ready pods --selector=app=liveness-test --timeout=20s
+pod/startup-probe-exec condition met
+
+real    0m15.397s
+user    0m0.043s
+sys     0m0.028s
++ kubectl get -n liveness-test events --sort-by=.lastTimestamp
+LAST SEEN   TYPE      REASON      OBJECT                   MESSAGE
+...snip...
+15s         Normal    Pulled      pod/startup-probe-exec   Container image "k8s.gcr.io/busybox" already present on machine
+15s         Normal    Created     pod/startup-probe-exec   Created container liveness
+15s         Normal    Started     pod/startup-probe-exec   Started container liveness
+11s         Warning   Unhealthy   pod/startup-probe-exec   Startup probe failed: 1
+6s          Warning   Unhealthy   pod/startup-probe-exec   Startup probe failed: 2
++ kubectl get -n liveness-test pod startup-probe-exec
+NAME                 READY   STATUS    RESTARTS   AGE
+startup-probe-exec   1/1     Running   0          16s
++ kubectl -n liveness-test delete -f exec-startup-probe.yaml
+pod "startup-probe-exec" deleted
+
+real    0m33.776s
+user    0m0.056s
+sys     0m0.008s
+----
+
+. Delete namespace
++
+[source,shell]
+----
+kubectl delete ns "${NAMESPACE:-liveness-test}"
+----

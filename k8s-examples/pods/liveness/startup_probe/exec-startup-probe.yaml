@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: liveness-test
+  name: startup-probe-exec
+spec:
+  containers:
+  - name: liveness
+    image: k8s.gcr.io/busybox
+    imagePullPolicy: IfNotPresent
+    args:
+    - /bin/sh
+    - -c
+    - for X in $(seq 1 9); do echo $X > /tmp/healthy; sleep 5; done; sleep 600
+    env:
+    - name: MY_COUNT
+      value: "3"
+    startupProbe:
+      exec:
+        command:
+        - /bin/sh
+        - -c
+        - cat /tmp/healthy; [ $(cat /tmp/healthy) -eq ${MY_COUNT} ]
+      initialDelaySeconds: 3
+      periodSeconds: 5
