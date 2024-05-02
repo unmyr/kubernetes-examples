@@ -1,0 +1,61 @@
+== Deployments
+
+=== Examples
+
+[source,shell]
+..env.postgres
+----
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=************
+
+DEFAULT_DB_NAME=fruits
+
+ADDITIONAL_USER=db_user1
+ADDITIONAL_PASSWORD=************
+----
+
+[source,yaml]
+.kustomization.yaml
+----
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: postgres
+commonLabels:
+  app.kubernetes.io/part-of: postgres
+resources:
+- pvc.yaml
+- deployment.yaml
+- service.yaml
+
+patches:
+- target:
+    group: apps
+    version: v1
+    kind: Deployment
+    name: postgres-1
+  patch: |-
+    - op: replace
+      path: /spec/template/spec/nodeName
+      value: kind-1-worker
+
+generatorOptions:
+  labels:
+    app: postgres
+
+configMapGenerator:
+- name: pg-initdb-config
+  files:
+    - 1_init_user_db.sh
+    - 2_create_tables.sh
+
+secretGenerator:
+- name: postgres-secret
+  envs:
+  # .env.postgres
+  # POSTGRES_USER=postgres
+  # POSTGRES_PASSWORD=************
+  # DEFAULT_DB_NAME=fruits
+  # ADDITIONAL_USER=db_user1
+  # ADDITIONAL_PASSWORD=************
+  - .env.postgres
+----

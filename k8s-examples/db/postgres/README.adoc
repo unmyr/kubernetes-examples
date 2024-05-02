@@ -1,0 +1,150 @@
+== Postgresql
+
+=== Setup
+
+. Create a `.env` file.
++
+[source,shell]
+..env
+----
+KUBE_NODENAME="kind-1-worker"
+MOUNT_POINT="/tmp/kind-1-postgres-data"
+----
+
+. Create a `postgres/.env.postgres` file.
++
+[source,shell]
+.postgres/.env.postgres
+----
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=********
+ADDITIONAL_USER=db_user1
+ADDITIONAL_PASSWORD=********
+----
+
+. Deploy resources
++
+[source,shell]
+----
+./deploy.sh create
+----
++
+[source,console]
+----
+$ ./deploy.sh create
+...
++ kubectl create ns postgres --dry-run=client -o yaml
+namespace/postgres created
+...
++ kubectl kustomize volumes/
+storageclass.storage.k8s.io/hostpath-class unchanged
+persistentvolume/postgres-data-pv created
++ kubectl get -n postgres -l app=postgres pv
+NAME               CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS      CLAIM   STORAGECLASS     REASON   AGE
+postgres-data-pv   512Mi      RWO            Retain           Available           hostpath-class            0s
+...
++ kubectl kustomize postgres/
+configmap/pg-initdb-config-************* created
+secret/postgres-secret-g5f48d9fh6 created
+service/postgres-service created
+persistentvolumeclaim/postgres-pvc created
+deployment.apps/postgres-1 created
++ kubectl rollout status -n postgres deploy -l app=postgres
+Waiting for deployment "postgres-1" rollout to finish: 0 out of 1 new replicas have been updated...
+Waiting for deployment "postgres-1" rollout to finish: 0 of 1 updated replicas are available...
+deployment "postgres-1" successfully rolled out
+
+real    0m21.959s
+user    0m0.065s
+sys     0m0.000s
+----
+
+. Show deployment.
++
+[source,shell]
+----
+./deploy.sh show
+----
+
+=== Test connection
+
+. Install psql (Optional)
++
+[source,shell]
+----
+sudo apt install -y postgresql-common
+sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
+sudo apt install postgresql-client-16
+----
+
+. Add pgpass entry(optional)
++
+--
+. Get postgres server IP
++
+[source,shell]
+----
+kubectl get -n "${NAMESPACE:-postgres}" services postgres-service -o jsonpath='{.status.loadBalancer.ingress[*].ip}'
+----
+
+. Create(or Edit) `~/.pgpass`
+[source,plaintext]
+.~/.pgpass
+----
+xxx.xxx.xxx.xxx:5432:fruits:db_user1:******
+xxx.xxx.xxx.xxx:5432:fruits:postgres:******
+----
+
+. Disallow any access to world or group
++
+[source,shell]
+----
+chmod 600 ~/.pgpass
+----
+--
+
+. Run sql
++
+[source,shell]
+----
+psql -h $(kubectl get -n "${NAMESPACE:-postgres}" services postgres-service -o jsonpath='{.status.loadBalancer.ingress[*].ip}') -U "${DB_USER_NAME:-db_user1}" -d fruits -f test.sql
+----
++
+[source,console]
+----
+$ kubectl get services postgres-service -o jsonpath='{.status.loadBalancer.ingress[*].ip}'
+xxx.xxx.xxx.xxx
+$ psql -h $(kubectl get services postgres-service -o jsonpath='{.status.loadBalancer.ingress[*].ip}') -d fruits -U db_user1 -f test.sql
+   search_path
+-----------------
+ "$user", public
+(1 row)
+
+ id |  name  | price |         mod_time
+----+--------+-------+---------------------------
+  1 | Apple  |   100 | 2022-09-24 18:21:04.03783
+  2 | Banana |   120 | 2022-09-24 18:21:04.03783
+  3 | Orange |   112 | 2022-09-24 18:21:04.03783
+(3 rows)
+
+ id |  name  | price |         mod_time
+----+--------+-------+---------------------------
+  1 | Apple  |   100 | 2022-09-24 18:21:04.03783
+  2 | Banana |   120 | 2022-09-24 18:21:04.03783
+  3 | Orange |   112 | 2022-09-24 18:21:04.03783
+(3 rows)
+
+INSERT 0 1
+UPDATE 1
+DELETE 1
+----
+
+=== Cleanup
+
+. Remove resources
++
+[source,shell]
+----
+./deploy.sh delete_dbs
+./deploy.sh delete_pv
+----

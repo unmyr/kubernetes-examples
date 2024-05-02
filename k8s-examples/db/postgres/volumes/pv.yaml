@@ -1,0 +1,34 @@
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  labels:
+    app.kubernetes.io/part-of: postgres
+  name: hostpath-class
+provisioner: kubernetes.io/fake-local
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  labels:
+    app: postgres
+    app.kubernetes.io/part-of: postgres
+  name: postgres-data-pv
+spec:
+  accessModes:
+  - ReadWriteOnce
+  capacity:
+    storage: 512Mi
+  local:
+    path: /dummy-path  # This field will be replaced by the kustomize.
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - dummy-nodename  # This field will be replaced by the kustomize.
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: hostpath-class
+  volumeMode: Filesystem

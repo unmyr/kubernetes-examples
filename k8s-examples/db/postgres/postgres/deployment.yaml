@@ -1,0 +1,50 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-1
+  labels:
+    app: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      nodeName: dummy-nodename  # This field will be replaced by the kustomize.
+      volumes:
+      - name: pg-init-user-db
+        configMap:
+          name: pg-initdb-config
+      - name: pg-data-vol
+        persistentVolumeClaim:
+          claimName: postgres-pvc
+
+      containers:
+      - name: postgres
+        image: postgres:16-alpine
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 5432
+        envFrom:
+        - secretRef:
+            name: postgres-secret
+
+        volumeMounts:
+        - mountPath: /docker-entrypoint-initdb.d
+          name: pg-init-user-db
+        - mountPath: /var/lib/postgresql/data
+          name: pg-data-vol
+
+        startupProbe:
+          exec:
+            command: ["pg_isready", "-d", "${DEFAULT_DB_NAME}", "-U", "${ADDITIONAL_USER}"]
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 30

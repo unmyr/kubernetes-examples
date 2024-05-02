@@ -1,0 +1,5 @@
+/*/.env*
+/postgres/.kustomization-out.yaml
+/postgres/kustomization.yaml
+/volumes/.kustomization-out.yaml
+/volumes/kustomization.yaml
