@@ -400,6 +400,26 @@ kubectl wait -n metallb-system --for=condition=Ready pods --selector=app=metallb
 kubectl wait -n metallb-system --for=condition=Ready pods --selector=app=metallb -l component=speaker --timeout=90s
 ----
 
+** Wait pods deleted
++
+--
+. Run pod
++
+[source,shell]
+----
+kubectl run -q -n "${NAMESPACE:-default}" --image=nginx nginx -it --rm --restart=Never -- sleep 30
+----
+
+. Wait pod stopped
++
+[source,shell]
+----
+kubectl wait --for delete -n "${NAMESPACE:-default}" pods/nginx --timeout=90s
+kubectl wait --for delete -n "${NAMESPACE:-default}" pods/nginx --timeout=1m
+----
+--
+
+
 === ReplicaSets
 
 * ReplicaSetオブジェクトに関する情報を表示します:
