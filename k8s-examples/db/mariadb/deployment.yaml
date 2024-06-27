@@ -1,0 +1,36 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mariadb-1
+  labels:
+    app: mariadb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mariadb
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: mariadb
+    spec:
+      nodeName: dummy-nodename  # This field will be replaced by the kustomize.
+      containers:
+      - name: mariadb
+        image: mariadb:11.4.2
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3306
+        envFrom:
+        - secretRef:
+            name: mariadb-secret
+        volumeMounts:
+        - mountPath: /docker-entrypoint-initdb.d
+          name: mariadb-initdb-script-path
+      volumes:
+      - name: mariadb-initdb-script-path
+        configMap:
+          name: mariadb-initdb-script

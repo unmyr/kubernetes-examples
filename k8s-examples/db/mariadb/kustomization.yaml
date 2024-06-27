@@ -1,0 +1,42 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: mariadb
+commonLabels:
+  app.kubernetes.io/part-of: mariadb
+resources:
+- deployment.yaml
+- service.yaml
+
+generatorOptions:
+  labels:
+    app: mariadb
+
+secretGenerator:
+- name: mariadb-secret
+  envs:
+  # .env.mariadb
+  # MARIADB_USER=root
+  # MARIADB_ROOT_PASSWORD=************
+  - .env.mariadb
+  options:
+    labels:
+      app: mariadb
+
+configMapGenerator:
+- name: mariadb-initdb-script
+  files:
+    - 1_init_user_db.sql
+  options:
+    labels:
+      app: mariadb
+
+patches:
+- target:
+    group: apps
+    version: v1
+    kind: Deployment
+    name: mariadb-1
+  patch: |-
+    - op: replace
+      path: /spec/template/spec/nodeName
+      value: kind-1-worker

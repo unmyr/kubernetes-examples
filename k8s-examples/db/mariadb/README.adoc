@@ -1,0 +1,122 @@
+## Install mariadb-client
+
+[source,shell]
+----
+sudo apt install -y mariadb-client
+----
+
+## Deploy MariaDb
+
+. Create namespace
++
+[source,shell]
+----
+kubectl create ns "${NAMESPACE:-mariadb}" --dry-run=client -o yaml | kubectl apply -f -
+----
+
+. Create password
++
+[source,shell]
+----
+printf "MARIADB_USER=root\nMARIADB_ROOT_PASSWORD=$(pwgen --symbols --capitalize --numerals 12 1)\n" > .env.mariadb
+----
+
+. Deploy maria db
++
+[source,shell]
+----
+kubectl kustomize ./ | kubectl apply -n "${NAMESPACE:-mariadb}" -f -; kubectl rollout status -n "${NAMESPACE:-mariadb}" deploy -l app=mariadb
+----
+
+. Show status
++
+[source,shell]
+----
+kubectl get -n "${NAMESPACE:-mariadb}" svc,deploy,pods,cm,secrets -l app=mariadb
+for POD_NAME in $(kubectl get -n "${NAMESPACE:-mariadb}" pods -l app=mariadb -o jsonpath='{.items[*].metadata.name}'); do kubectl logs -n "${NAMESPACE:-mariadb}" ${POD_NAME}; done
+----
+
+## Manage database
+
+. Connect server
++
+--
+* Using `mariadb-client`
++
+[source,shell]
+----
+mariadb --host $(kubectl get -n "${NAMESPACE:-mariadb}" svc/mariadb-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}{"\n"}') --port 3306 --user $(sed -ne '/^MARIADB_USER=/s/^.*=//p' .env.mariadb) --password=$(sed -ne '/^MARIADB_ROOT_PASSWORD=/s/^.*=//p' .env.mariadb)
+----
+
+* Using `kubectl exec`
++
+[source,shell]
+----
+kubectl exec -it -n "${NAMESPACE:-mariadb}" $(kubectl get -n "${NAMESPACE:-mariadb}" pods -l app=mariadb -o jsonpath="{.items[0].metadata.name}") -- mariadb -u root -p
+----
+--
+
+. Create database (Optional)
++
+[source,sql]
+----
+CREATE DATABASE fruits IF NOT EXISTS fruits;
+
+CREATE OR REPLACE ROLE user_role;
+GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, RELOAD, PROCESS, REFERENCES, INDEX, ALTER, SHOW DATABASES, CREATE TEMPORARY TABLES, LOCK TABLES, EXECUTE, REPLICATION SLAVE, REPLICATION CLIENT, CREATE VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, CREATE USER, EVENT, TRIGGER ON *.* TO user_role WITH GRANT OPTION;
+CREATE USER 'db_user1'@'%' IDENTIFIED BY '************';
+GRANT `user_role` TO `db_user1`;
+
+-- SELECT host,user FROM mysql.user;
+----
+
+. Create table (Optional)
++
+[source,sql]
+----
+USE fruits;
+CREATE TABLE fruits_menu (id SERIAL PRIMARY KEY, name VARCHAR(16) UNIQUE, price INTEGER, quantity INTEGER DEFAULT 0, mod_time timestamp DEFAULT current_timestamp);
+GRANT SELECT,INSERT,UPDATE,DELETE ON fruits_menu TO ${ADDITIONAL_USER};
+INSERT INTO fruits_menu (name, price, quantity) VALUES ('Apple', 100, 10), ('Banana', 120, 1), ('Orange', 110, 0);
+----
+
+. Select table
++
+[source,sql]
+----
+SELECT * FROM fruits_menu;
+----
+
+. Drop table and database
++
+[source,sql]
+----
+DROP TABLE fruits_menu;
+DROP USER db_user1;
+DROP ROLE IF EXISTS user_role;
+DROP DATABASE `fruits`;
+----
+
+
+## Undeploy MariaDb
+
+. Delete `mariadb`
++
+[source,shell]
+----
+kubectl delete -n "${NAMESPACE:-mariadb}" svc,deploy,pods,cm,secrets -l app=mariadb
+----
+
+. Create namespace
++
+[source,shell]
+----
+kubectl delete ns "${NAMESPACE:-mariadb}"
+----
+
+. Delete secrets
++
+[source,shell]
+----
+rm -f .env.mariadb
+----
