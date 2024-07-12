@@ -7,8 +7,8 @@ usage: $0 {preview|apply|delete|show}
 EOF
 }
 
-PART_OF_APP="kustomize-deploy-demo"
-NAMESPACE="kustomize-deploy-demo"
+APP_NAME="kustomize-deploy-demo"
+NAMESPACE="${NAMESPACE:-${APP_NAME}}"
 
 SUB_COMMAND="$1"
 case "${SUB_COMMAND}" in
@@ -19,26 +19,32 @@ preview)
 
 apply)
     set -x
-    kubectl create ns "${NAMESPACE:-default}" --dry-run=client -o yaml | kubectl apply -f -
-    kubectl kustomize ./ | kubectl apply -f -
-    kubectl get -n "${NAMESPACE:-default}" all
-    # kubectl wait -n "${NAMESPACE:-default}" --for=condition=Available deployments --selector=app.kubernetes.io/part-of=${PART_OF_APP} --timeout=10s
-    kubectl rollout status -n "${NAMESPACE:-default}" deployment -l app.kubernetes.io/part-of=${PART_OF_APP} --timeout=10s
+    test "${NAMESPACE}" = "default" || {
+        kubectl create ns "${NAMESPACE}" --dry-run=client -o yaml | kubectl apply -f -
+    }
+    kubectl apply -k ./
+    kubectl get -n "${NAMESPACE}" all
+    kubectl rollout status -n "${NAMESPACE}" deployment -l app.kubernetes.io/name=${APP_NAME} --timeout=10s
     set +x
-    kubectl get -n "${NAMESPACE:-default}" pods -o jsonpath="{range .items[*]}{.metadata.name}{'\n'}{end}" | while read POD_NAME; do
-        (set -x; kubectl get -n "${NAMESPACE:-default}" pod/${POD_NAME} -o jsonpath="{.spec.containers[0].env}{'\n'}")
+    kubectl get -n "${NAMESPACE}" pods -o jsonpath="{range .items[*]}{.metadata.name}{'\n'}{end}" | while read POD_NAME; do
+        (set -x; kubectl get -n "${NAMESPACE}" pod/${POD_NAME} -o jsonpath="{.spec.containers[0].env}{'\n'}")
     done
     ;;
 
 delete)
+    NAMESPACE=$(kubectl get -A deploy -l app.kubernetes.io/name=${APP_NAME} -o jsonpath='{range .items[*]}{.metadata.namespace}{"\n"}{.end}' | uniq)
+    test -n "${NAMESPACE}" || { echo "INFO: The deployment is already stopped." 1>&2; exit 0; }
     set -x
-    kubectl kustomize ./ | kubectl delete -f -
-    kubectl delete ns "${NAMESPACE:-default}"
+    kubectl delete -n "${NAMESPACE}" deploy -l app.kubernetes.io/name=${APP_NAME}
+    time kubectl wait --for delete -n "${NAMESPACE}" pods -l app.kubernetes.io/name=${APP_NAME} --timeout=5s || {
+        kubectl get -n "${NAMESPACE}" all -l app.kubernetes.io/name=${APP_NAME}
+    }
+    time kubectl delete ns "${NAMESPACE}"
     ;;
 
 show)
     set -x
-    kubectl get -n "${NAMESPACE:-default}" all
+    kubectl get -A all -l app.kubernetes.io/name=${APP_NAME}
     ;;
 
 *)
