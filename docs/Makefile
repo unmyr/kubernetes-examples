@@ -12,6 +12,7 @@ HTML_LIST=\
 mkdir_and_copy \
 $(DIST_DIR)/docker_buildpacks.html \
 $(DIST_DIR)/docker.html \
+$(DIST_DIR)/k8s_helm.html \
 $(DIST_DIR)/k8s_kind.html \
 $(DIST_DIR)/k8s_kpack.html \
 $(DIST_DIR)/k8s_kustomize.html \

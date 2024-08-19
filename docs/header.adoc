@@ -1,5 +1,6 @@
 <<index.adoc#,Index>> {vbar}
 <<docker.adoc#,Docker>>(<<docker_buildpacks.adoc#,Buildpacks>>) {vbar}
+<<k8s_helm.adoc#,Helm>> {vbar}
 <<k8s_kind.adoc#,Kind>> {vbar}
 <<k8s_kpack.adoc#,Kpack>> {vbar}
 <<k8s_tekton.adoc#,Tekton>> {vbar}
