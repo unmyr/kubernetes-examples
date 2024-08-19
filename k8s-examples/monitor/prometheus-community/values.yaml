@@ -1,0 +1,4 @@
+grafana:
+  service:
+    enabled: true
+    type: LoadBalancer
