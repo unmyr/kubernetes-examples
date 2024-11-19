@@ -208,7 +208,14 @@ describe)
 
 logs)
     echo "Timestamp: $(date --iso-8601=second)"
-    (set -x; kubectl -n "${NAMESPACE:-postgres}" logs postgres-pod)
+    while read LINE; do
+        NS_AND_POD=($LINE)
+        DB_NAMESPACE=${NS_AND_POD[0]}
+        DB_POD_NAME=${NS_AND_POD[1]}
+        (set -x; kubectl -n "${DB_NAMESPACE}" logs ${DB_POD_NAME})
+    done< <(
+      kubectl get -n "${NAMESPACE:-postgres}" pods -l app=${APP_NAME:-postgres} -o jsonpath='{range .items[*]}{.metadata.namespace}{"\t"}{.metadata.name}{"\n"}{end}'
+    )
     ;;
 
 *)
